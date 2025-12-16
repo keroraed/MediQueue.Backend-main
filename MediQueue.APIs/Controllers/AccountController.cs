@@ -54,6 +54,7 @@ public class AccountController : BaseApiController
     /// <summary>
     /// Register as Patient with patient-specific fields
     /// </summary>
+    [AllowAnonymous]
     [HttpPost("register/patient")]
     public async Task<ActionResult> RegisterPatient(RegisterPatientDTO registerDto)
  {
@@ -130,6 +131,7 @@ BloodType = registerDto.BloodType,
     /// <summary>
     /// Register as Clinic with clinic profile and address
     /// </summary>
+    [AllowAnonymous]
   [HttpPost("register/clinic")]
     public async Task<ActionResult> RegisterClinic(RegisterClinicDTO registerDto)
     {
@@ -238,6 +240,7 @@ var otpCode = _otpService.GenerateOtp();
      return Ok(new ApiResponse(200, "Clinic registration successful. Please check your email to verify your account."));
     }
 
+    [AllowAnonymous]
     [HttpPost("verify-email")]
  public async Task<ActionResult<UserDTO>> VerifyEmail(VerifyEmailDto verifyEmailDto)
     {
@@ -310,6 +313,7 @@ var role = roles.FirstOrDefault() ?? "Patient"; // Single role only
     });
     }
 
+    [AllowAnonymous]
     [HttpPost("resend-verification-otp")]
     public async Task<ActionResult> ResendVerificationOtp(ResendOtpDto resendOtpDto)
     {
@@ -365,6 +369,7 @@ var role = roles.FirstOrDefault() ?? "Patient"; // Single role only
     /// <summary>
     /// Login for all users (Patient, Clinic, Admin)
     /// </summary>
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<UserDTO>> Login(LoginDTO loginDto)
     {
@@ -437,6 +442,7 @@ var roles = await _userManager.GetRolesAsync(user);
         return Ok(new ApiResponse(200, "Logged out successfully"));
     }
 
+    [AllowAnonymous]
     [HttpPost("ForgotPassword")]
     public async Task<ActionResult> ForgotPassword(ForgotPasswordDto forgotPasswordDto)
     {
@@ -474,6 +480,7 @@ var roles = await _userManager.GetRolesAsync(user);
     return Ok(new ApiResponse(200, "If the email exists, an OTP has been sent"));
     }
 
+    [AllowAnonymous]
     [HttpPost("VerifyOtp")]
     public async Task<ActionResult<OtpVerificationResponseDto>> VerifyOtp(VerifyOtpDto verifyOtpDto)
     {
@@ -520,6 +527,7 @@ var roles = await _userManager.GetRolesAsync(user);
         });
     }
 
+    [AllowAnonymous]
     [HttpPost("ResetPasswordWithToken")]
     public async Task<ActionResult> ResetPasswordWithToken(ResetPasswordWithTokenDto resetPasswordDto)
     {
@@ -556,6 +564,7 @@ var roles = await _userManager.GetRolesAsync(user);
         return Ok(new ApiResponse(200, "Password has been reset successfully"));
     }
 
+    [AllowAnonymous]
     [HttpPost("ResendOtp")]
     public async Task<ActionResult> ResendOtp(ResendOtpDto resendOtpDto)
     {
