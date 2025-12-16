@@ -55,15 +55,21 @@ public class AccountController : BaseApiController
     /// Register as Patient with patient-specific fields
     /// </summary>
     [AllowAnonymous]
-    [HttpPost("register/patient")]
+  [HttpPost("register/patient")]
     public async Task<ActionResult> RegisterPatient(RegisterPatientDTO registerDto)
  {
     if (await _userManager.FindByEmailAsync(registerDto.Email) != null)
     {
-    return BadRequest(new ApiResponse(400, "Email address is already in use"));
+  return BadRequest(new ApiResponse(400, "Email address is already in use"));
       }
 
-        if (await _userManager.Users.AnyAsync(u => u.PhoneNumber == registerDto.PhoneNumber))
+        // Check if email exists in Store database as well
+     if (await _unitOfWork.Users.EmailExistsAsync(registerDto.Email))
+        {
+            return BadRequest(new ApiResponse(400, "Email address is already in use"));
+        }
+
+ if (await _userManager.Users.AnyAsync(u => u.PhoneNumber == registerDto.PhoneNumber))
         {
       return BadRequest(new ApiResponse(400, "Phone number is already in use"));
   }
@@ -77,22 +83,22 @@ public class AccountController : BaseApiController
   DateCreated = DateTime.UtcNow,
  EmailConfirmed = false,
      // Patient-specific fields
-            DateOfBirth = registerDto.DateOfBirth,
-            Gender = registerDto.Gender,
+  DateOfBirth = registerDto.DateOfBirth,
+   Gender = registerDto.Gender,
 BloodType = registerDto.BloodType,
   EmergencyContact = registerDto.EmergencyContact,
     EmergencyContactPhone = registerDto.EmergencyContactPhone
-   };
+ };
 
         var result = await _userManager.CreateAsync(user, registerDto.Password);
 
-  if (!result.Succeeded)
+if (!result.Succeeded)
         {
       return BadRequest(new ApiResponse(400, string.Join(", ", result.Errors.Select(e => e.Description))));
   }
 
     // Assign Patient role
-        await _userManager.AddToRoleAsync(user, "Patient");
+     await _userManager.AddToRoleAsync(user, "Patient");
 
         // Create User entity in business DB for appointments
         var businessUser = new Core.Entities.User
@@ -100,8 +106,8 @@ BloodType = registerDto.BloodType,
             Email = registerDto.Email,
     PasswordHash = user.PasswordHash!,
         Role = "Patient",
-    IsVerified = false,
-          IsActive = true
+ IsVerified = false,
+ IsActive = true
       };
    _unitOfWork.Users.Add(businessUser);
      await _unitOfWork.Complete();
@@ -116,9 +122,9 @@ BloodType = registerDto.BloodType,
   {
     Email = registerDto.Email,
      Code = hashedOtp,
-        ExpirationDate = DateTime.UtcNow.AddMinutes(10),
+    ExpirationDate = DateTime.UtcNow.AddMinutes(10),
             IsUsed = false,
-          FailedAttempts = 0,
+       FailedAttempts = 0,
      Purpose = OtpPurpose.EmailVerification
    };
 
@@ -136,12 +142,18 @@ BloodType = registerDto.BloodType,
     public async Task<ActionResult> RegisterClinic(RegisterClinicDTO registerDto)
     {
      if (await _userManager.FindByEmailAsync(registerDto.Email) != null)
-        {
+      {
        return BadRequest(new ApiResponse(400, "Email address is already in use"));
    }
 
-        if (await _userManager.Users.AnyAsync(u => u.PhoneNumber == registerDto.PhoneNumber))
+        // Check if email exists in Store database as well
+        if (await _unitOfWork.Users.EmailExistsAsync(registerDto.Email))
         {
+ return BadRequest(new ApiResponse(400, "Email address is already in use"));
+        }
+
+        if (await _userManager.Users.AnyAsync(u => u.PhoneNumber == registerDto.PhoneNumber))
+    {
   return BadRequest(new ApiResponse(400, "Phone number is already in use"));
         }
 
@@ -149,7 +161,7 @@ BloodType = registerDto.BloodType,
     {
      DisplayName = registerDto.DisplayName,
   Email = registerDto.Email,
-    UserName = registerDto.Email,
+ UserName = registerDto.Email,
       PhoneNumber = registerDto.PhoneNumber,
  DateCreated = DateTime.UtcNow,
        EmailConfirmed = false
@@ -173,8 +185,8 @@ BloodType = registerDto.BloodType,
       Role = "Clinic",
    IsVerified = false,
    IsActive = true
-        };
-        _unitOfWork.Users.Add(businessUser);
+    };
+  _unitOfWork.Users.Add(businessUser);
       await _unitOfWork.Complete();
 
         // Create Clinic Profile
@@ -189,22 +201,22 @@ Specialty = registerDto.Specialty,
   _unitOfWork.Clinics.Add(clinicProfile);
         await _unitOfWork.Complete();
 
-        // Create Clinic Address
-        var clinicAddress = new Core.Entities.ClinicAddress
+ // Create Clinic Address
+      var clinicAddress = new Core.Entities.ClinicAddress
       {
     ClinicId = clinicProfile.Id,
     Country = registerDto.Country,
    City = registerDto.City,
    Area = registerDto.Area,
    Street = registerDto.Street,
-       Building = registerDto.Building,
-        Notes = registerDto.AddressNotes
+    Building = registerDto.Building,
+      Notes = registerDto.AddressNotes
     };
         _unitOfWork.Repository<Core.Entities.ClinicAddress>().Add(clinicAddress);
-   await _unitOfWork.Complete();
+ await _unitOfWork.Complete();
 
-     // Create additional phones if provided
-        if (registerDto.AdditionalPhones != null && registerDto.AdditionalPhones.Any())
+   // Create additional phones if provided
+      if (registerDto.AdditionalPhones != null && registerDto.AdditionalPhones.Any())
 {
        foreach (var phoneNumber in registerDto.AdditionalPhones)
         {
@@ -215,7 +227,7 @@ Specialty = registerDto.Specialty,
      };
        _unitOfWork.Repository<Core.Entities.ClinicPhone>().Add(clinicPhone);
       }
-      await _unitOfWork.Complete();
+await _unitOfWork.Complete();
 }
 
   // Generate and send email verification OTP
@@ -224,13 +236,13 @@ Specialty = registerDto.Specialty,
 var otpCode = _otpService.GenerateOtp();
   var hashedOtp = _otpService.HashOtp(otpCode);
 
-        var otp = new Otp
+  var otp = new Otp
       {
    Email = registerDto.Email,
       Code = hashedOtp,
     ExpirationDate = DateTime.UtcNow.AddMinutes(10),
-        IsUsed = false,
-            FailedAttempts = 0,
+      IsUsed = false,
+  FailedAttempts = 0,
    Purpose = OtpPurpose.EmailVerification
         };
 
@@ -605,12 +617,18 @@ var roles = await _userManager.GetRolesAsync(user);
       return Ok(new ApiResponse(200, "A new OTP has been sent"));
     }
 
+    [AllowAnonymous]
     [HttpGet("emailexists")]
     public async Task<ActionResult<bool>> CheckEmailExists([FromQuery] string email)
-  {
-        return await _userManager.FindByEmailAsync(email) != null;
+    {
+        // Check both Identity and Store databases
+        var existsInIdentity = await _userManager.FindByEmailAsync(email) != null;
+        var existsInStore = await _unitOfWork.Users.EmailExistsAsync(email);
+ 
+        return existsInIdentity || existsInStore;
     }
 
+  [AllowAnonymous]
   [HttpGet("phoneexists")]
     public async Task<ActionResult<bool>> CheckPhoneExists([FromQuery] string phoneNumber)
     {
