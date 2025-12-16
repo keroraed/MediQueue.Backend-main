@@ -57,67 +57,72 @@ public class AccountController : BaseApiController
     [HttpPost("register/patient")]
     public async Task<ActionResult> RegisterPatient(RegisterPatientDTO registerDto)
  {
-        if (await _userManager.FindByEmailAsync(registerDto.Email) != null)
-        {
-      return BadRequest(new ApiResponse(400, "Email address is already in use"));
+    if (await _userManager.FindByEmailAsync(registerDto.Email) != null)
+    {
+    return BadRequest(new ApiResponse(400, "Email address is already in use"));
       }
 
-    var user = new AppUser
+        if (await _userManager.Users.AnyAsync(u => u.PhoneNumber == registerDto.PhoneNumber))
         {
+      return BadRequest(new ApiResponse(400, "Phone number is already in use"));
+  }
+
+    var user = new AppUser
+     {
        DisplayName = registerDto.DisplayName,
  Email = registerDto.Email,
       UserName = registerDto.Email,
-          PhoneNumber = registerDto.PhoneNumber,
+ PhoneNumber = registerDto.PhoneNumber,
   DateCreated = DateTime.UtcNow,
-          EmailConfirmed = false,
-       // Patient-specific fields
+ EmailConfirmed = false,
+     // Patient-specific fields
             DateOfBirth = registerDto.DateOfBirth,
             Gender = registerDto.Gender,
-            BloodType = registerDto.BloodType,
+BloodType = registerDto.BloodType,
   EmergencyContact = registerDto.EmergencyContact,
     EmergencyContactPhone = registerDto.EmergencyContactPhone
    };
 
         var result = await _userManager.CreateAsync(user, registerDto.Password);
 
-        if (!result.Succeeded)
+  if (!result.Succeeded)
         {
       return BadRequest(new ApiResponse(400, string.Join(", ", result.Errors.Select(e => e.Description))));
-        }
+  }
 
-        // Assign Patient role
+    // Assign Patient role
         await _userManager.AddToRoleAsync(user, "Patient");
 
         // Create User entity in business DB for appointments
         var businessUser = new Core.Entities.User
-        {
+  {
             Email = registerDto.Email,
     PasswordHash = user.PasswordHash!,
         Role = "Patient",
-            IsVerified = false,
-            IsActive = true
+    IsVerified = false,
+          IsActive = true
       };
    _unitOfWork.Users.Add(businessUser);
      await _unitOfWork.Complete();
 
-        // Generate and send email verification OTP
-        await _otpRepository.InvalidateAllOtpsByEmailAsync(registerDto.Email, OtpPurpose.EmailVerification);
+  // Generate and send email verification OTP
+  await _otpRepository.InvalidateAllOtpsByEmailAsync(registerDto.Email, OtpPurpose.EmailVerification);
     
     var otpCode = _otpService.GenerateOtp();
-        var hashedOtp = _otpService.HashOtp(otpCode);
+   var hashedOtp = _otpService.HashOtp(otpCode);
 
         var otp = new Otp
   {
     Email = registerDto.Email,
      Code = hashedOtp,
-            ExpirationDate = DateTime.UtcNow.AddMinutes(10),
+        ExpirationDate = DateTime.UtcNow.AddMinutes(10),
             IsUsed = false,
           FailedAttempts = 0,
-            Purpose = OtpPurpose.EmailVerification
+     Purpose = OtpPurpose.EmailVerification
    };
 
         await _otpRepository.AddOtpAsync(otp);
-        await _emailService.SendEmailVerificationOtpAsync(registerDto.Email, otpCode, registerDto.DisplayName);
+     await _emailService.SendEmailVerificationOtpAsync(registerDto.Email, otpCode, registerDto.DisplayName);
 
         return Ok(new ApiResponse(200, "Patient registration successful. Please check your email to verify your account."));
     }
@@ -131,39 +136,44 @@ public class AccountController : BaseApiController
      if (await _userManager.FindByEmailAsync(registerDto.Email) != null)
         {
        return BadRequest(new ApiResponse(400, "Email address is already in use"));
+   }
+
+        if (await _userManager.Users.AnyAsync(u => u.PhoneNumber == registerDto.PhoneNumber))
+        {
+  return BadRequest(new ApiResponse(400, "Phone number is already in use"));
         }
 
-        var user = new AppUser
+ var user = new AppUser
     {
-            DisplayName = registerDto.DisplayName,
+     DisplayName = registerDto.DisplayName,
   Email = registerDto.Email,
-            UserName = registerDto.Email,
+    UserName = registerDto.Email,
       PhoneNumber = registerDto.PhoneNumber,
  DateCreated = DateTime.UtcNow,
-            EmailConfirmed = false
+       EmailConfirmed = false
       };
 
  var result = await _userManager.CreateAsync(user, registerDto.Password);
 
-        if (!result.Succeeded)
+     if (!result.Succeeded)
       {
-            return BadRequest(new ApiResponse(400, string.Join(", ", result.Errors.Select(e => e.Description))));
+       return BadRequest(new ApiResponse(400, string.Join(", ", result.Errors.Select(e => e.Description))));
      }
 
       // Assign Clinic role
-      await _userManager.AddToRoleAsync(user, "Clinic");
+   await _userManager.AddToRoleAsync(user, "Clinic");
 
         // Create User entity in business DB
     var businessUser = new Core.Entities.User
   {
    Email = registerDto.Email,
-            PasswordHash = user.PasswordHash!,
+  PasswordHash = user.PasswordHash!,
       Role = "Clinic",
-            IsVerified = false,
+   IsVerified = false,
    IsActive = true
         };
         _unitOfWork.Users.Add(businessUser);
-        await _unitOfWork.Complete();
+      await _unitOfWork.Complete();
 
         // Create Clinic Profile
         var clinicProfile = new Core.Entities.ClinicProfile
@@ -171,7 +181,7 @@ public class AccountController : BaseApiController
  UserId = businessUser.Id,
      DoctorName = registerDto.DoctorName,
 Specialty = registerDto.Specialty,
-            Description = registerDto.Description,
+    Description = registerDto.Description,
             SlotDurationMinutes = registerDto.SlotDurationMinutes
         };
   _unitOfWork.Clinics.Add(clinicProfile);
@@ -179,22 +189,22 @@ Specialty = registerDto.Specialty,
 
         // Create Clinic Address
         var clinicAddress = new Core.Entities.ClinicAddress
-        {
+      {
     ClinicId = clinicProfile.Id,
     Country = registerDto.Country,
    City = registerDto.City,
-        Area = registerDto.Area,
+   Area = registerDto.Area,
    Street = registerDto.Street,
        Building = registerDto.Building,
-            Notes = registerDto.AddressNotes
-        };
+        Notes = registerDto.AddressNotes
+    };
         _unitOfWork.Repository<Core.Entities.ClinicAddress>().Add(clinicAddress);
    await _unitOfWork.Complete();
 
      // Create additional phones if provided
         if (registerDto.AdditionalPhones != null && registerDto.AdditionalPhones.Any())
 {
-            foreach (var phoneNumber in registerDto.AdditionalPhones)
+       foreach (var phoneNumber in registerDto.AdditionalPhones)
         {
  var clinicPhone = new Core.Entities.ClinicPhone
     {
@@ -203,23 +213,23 @@ Specialty = registerDto.Specialty,
      };
        _unitOfWork.Repository<Core.Entities.ClinicPhone>().Add(clinicPhone);
       }
-            await _unitOfWork.Complete();
+      await _unitOfWork.Complete();
 }
 
-        // Generate and send email verification OTP
-        await _otpRepository.InvalidateAllOtpsByEmailAsync(registerDto.Email, OtpPurpose.EmailVerification);
+  // Generate and send email verification OTP
+   await _otpRepository.InvalidateAllOtpsByEmailAsync(registerDto.Email, OtpPurpose.EmailVerification);
    
 var otpCode = _otpService.GenerateOtp();
   var hashedOtp = _otpService.HashOtp(otpCode);
 
         var otp = new Otp
       {
-            Email = registerDto.Email,
+   Email = registerDto.Email,
       Code = hashedOtp,
-            ExpirationDate = DateTime.UtcNow.AddMinutes(10),
-            IsUsed = false,
+    ExpirationDate = DateTime.UtcNow.AddMinutes(10),
+        IsUsed = false,
             FailedAttempts = 0,
-          Purpose = OtpPurpose.EmailVerification
+   Purpose = OtpPurpose.EmailVerification
         };
 
         await _otpRepository.AddOtpAsync(otp);
@@ -592,7 +602,13 @@ var roles = await _userManager.GetRolesAsync(user);
         return await _userManager.FindByEmailAsync(email) != null;
     }
 
-    [Authorize]
+  [HttpGet("phoneexists")]
+    public async Task<ActionResult<bool>> CheckPhoneExists([FromQuery] string phoneNumber)
+    {
+        return await _userManager.Users.AnyAsync(u => u.PhoneNumber == phoneNumber);
+    }
+
+  [Authorize]
     [HttpGet("profile")]
     public async Task<ActionResult<AccountProfileDto>> GetProfile()
     {
@@ -622,24 +638,37 @@ var roles = await _userManager.GetRolesAsync(user);
  if (user == null)
         {
      return NotFound(new ApiResponse(404, "User not found"));
-        }
+      }
 
-    user.DisplayName = updateProfileDto.DisplayName;
+        // Check if phone number is already in use by another user
+        if (!string.IsNullOrEmpty(updateProfileDto.PhoneNumber) && 
+    updateProfileDto.PhoneNumber != user.PhoneNumber)
+        {
+            var phoneExists = await _userManager.Users
+     .AnyAsync(u => u.PhoneNumber == updateProfileDto.PhoneNumber);
+            
+ if (phoneExists)
+            {
+         return BadRequest(new ApiResponse(400, "Phone number is already in use"));
+     }
+      }
+
+  user.DisplayName = updateProfileDto.DisplayName;
         user.PhoneNumber = updateProfileDto.PhoneNumber;
 
-        var result = await _userManager.UpdateAsync(user);
+     var result = await _userManager.UpdateAsync(user);
 
-        if (!result.Succeeded)
+   if (!result.Succeeded)
  {
-            return BadRequest(new ApiResponse(400, "Failed to update profile"));
+    return BadRequest(new ApiResponse(400, "Failed to update profile"));
   }
 
      return Ok(new AccountProfileDto
         {
-          DisplayName = user.DisplayName,
-            Email = user.Email!,
+     DisplayName = user.DisplayName,
+ Email = user.Email!,
         PhoneNumber = user.PhoneNumber
-        });
+});
     }
 
     [Authorize]
