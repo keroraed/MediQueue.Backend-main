@@ -1,0 +1,94 @@
+@page
+@model MediQueue.APIs.Pages.Admin.AppointmentsModel
+@{
+    ViewData["Title"] = "Appointments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-calendar-alt"></i> Appointments</h2>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Filter by Status</label>
+                <select name="status" class="form-select" onchange="this.form.submit()">
+                    <option value="all" selected="@(Model.SelectedStatus == "all")">All Status</option>
+                    <option value="Pending" selected="@(Model.SelectedStatus == "Pending")">Pending</option>
+                    <option value="Confirmed" selected="@(Model.SelectedStatus == "Confirmed")">Confirmed</option>
+                    <option value="Completed" selected="@(Model.SelectedStatus == "Completed")">Completed</option>
+                    <option value="Cancelled" selected="@(Model.SelectedStatus == "Cancelled")">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Filter by Date</label>
+                <select name="dateFilter" class="form-select" onchange="this.form.submit()">
+                    <option value="all" selected="@(Model.SelectedDateFilter == "all")">All Dates</option>
+                    <option value="today" selected="@(Model.SelectedDateFilter == "today")">Today</option>
+                    <option value="week" selected="@(Model.SelectedDateFilter == "week")">This Week</option>
+                    <option value="month" selected="@(Model.SelectedDateFilter == "month")">This Month</option>
+                </select>
+            </div>
+        </form>
+    </div>
+    <div class="card-body">
+        @if (Model.Appointments.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Patient</th>
+                            <th>Clinic</th>
+                            <th>Date & Time</th>
+                            <th>Queue #</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var appointment in Model.Appointments)
+                        {
+                            <tr>
+                                <td>@appointment.Id</td>
+                                <td>@appointment.PatientName</td>
+                                <td>@appointment.ClinicName</td>
+                                <td>@appointment.AppointmentDate.ToString("MMM dd, yyyy hh:mm tt")</td>
+                                <td><span class="badge bg-secondary">@appointment.QueueNumber</span></td>
+                                <td>
+                                    <span class="badge bg-@(GetStatusColor(appointment.Status))">
+                                        @appointment.Status
+                                    </span>
+                                </td>
+                                <td>@appointment.CreatedAt.ToString("MMM dd, yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-3">
+                <p class="text-muted">Total Appointments: @Model.Appointments.Count</p>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted text-center py-4">No appointments found</p>
+        }
+    </div>
+</div>
+
+@functions {
+    string GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Pending" => "warning",
+            "Confirmed" => "info",
+            "Completed" => "success",
+            "Cancelled" => "danger",
+            _ => "secondary"
+        };
+    }
+}
