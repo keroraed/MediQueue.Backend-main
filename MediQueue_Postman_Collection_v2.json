@@ -1,0 +1,1956 @@
+{
+	"info": {
+		"_postman_id": "mediqueue-api-collection-2026",
+		"name": "MediQueue API - Complete Collection",
+		"description": "Complete API collection for MediQueue medical appointment system with automatic token management, test scripts, and examples for all endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "mediqueue"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register Patient",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('patientEmail', pm.request.body.raw ? JSON.parse(pm.request.body.raw).email : '');",
+									"    pm.test('Patient registration successful', () => {",
+									"        pm.expect(response.statusCode).to.eql(200);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"patient@example.com\",\n  \"displayName\": \"John Doe\",\n  \"phoneNumber\": \"+201234567890\",\n  \"password\": \"Patient123\",\n  \"dateOfBirth\": \"1990-01-15\",\n  \"gender\": \"Male\",\n  \"bloodType\": \"A+\",\n  \"emergencyContact\": \"Jane Doe\",\n  \"emergencyContactPhone\": \"+201234567891\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/register/patient",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"register",
+								"patient"
+							]
+						},
+						"description": "Register a new patient account with medical details"
+					},
+					"response": []
+				},
+				{
+					"name": "Register Clinic",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('clinicEmail', pm.request.body.raw ? JSON.parse(pm.request.body.raw).email : '');",
+									"    pm.test('Clinic registration successful', () => {",
+									"        pm.expect(response.statusCode).to.eql(200);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"clinic@example.com\",\n  \"displayName\": \"City Medical Clinic\",\n  \"phoneNumber\": \"+201098765432\",\n  \"password\": \"Clinic123\",\n  \"doctorName\": \"Dr. Sarah Ahmed\",\n  \"specialty\": \"General Medicine\",\n  \"description\": \"Providing quality healthcare services\",\n  \"slotDurationMinutes\": 30,\n  \"country\": \"Egypt\",\n  \"city\": \"Cairo\",\n  \"area\": \"Nasr City\",\n  \"street\": \"Abbas El Akkad Street\",\n  \"building\": \"Building 123\",\n  \"addressNotes\": \"Next to City Stars Mall\",\n  \"additionalPhones\": [\"+201098765433\", \"+201098765434\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/register/clinic",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"register",
+								"clinic"
+							]
+						},
+						"description": "Register a new clinic account with location and doctor details"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.token) {",
+									"        pm.environment.set('authToken', response.token);",
+									"        pm.environment.set('userRole', response.role);",
+									"        pm.environment.set('userEmail', response.email);",
+									"    }",
+									"    pm.test('Email verified and token received', () => {",
+									"        pm.expect(response).to.have.property('token');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"patient@example.com\",\n  \"otpCode\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/verify-email",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"verify-email"
+							]
+						},
+						"description": "Verify email address using OTP code sent to email"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('authToken', response.token);",
+									"    pm.environment.set('userRole', response.role);",
+									"    pm.environment.set('userEmail', response.email);",
+									"    pm.environment.set('displayName', response.displayName);",
+									"    ",
+									"    pm.test('Login successful', () => {",
+									"        pm.expect(response).to.have.property('token');",
+									"        pm.expect(response).to.have.property('role');",
+									"    });",
+									"    ",
+									"    console.log('✅ Token saved. Role: ' + response.role);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"patient@example.com\",\n  \"password\": \"Patient123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"login"
+							]
+						},
+						"description": "Login with email and password to receive JWT token"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Current user retrieved', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/account/GetCurrentUser",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"GetCurrentUser"
+							]
+						},
+						"description": "Get current authenticated user details"
+					},
+					"response": []
+				},
+				{
+					"name": "Resend Verification OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"patient@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/resend-verification-otp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"resend-verification-otp"
+							]
+						},
+						"description": "Resend email verification OTP (60-second cooldown)"
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"patient@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/ForgotPassword",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"ForgotPassword"
+							]
+						},
+						"description": "Request password reset OTP"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify OTP (Password Reset)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.resetToken) {",
+									"        pm.environment.set('resetToken', response.resetToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"patient@example.com\",\n  \"otpCode\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/VerifyOtp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"VerifyOtp"
+							]
+						},
+						"description": "Verify password reset OTP and receive reset token"
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password with Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"patient@example.com\",\n  \"resetToken\": \"{{resetToken}}\",\n  \"newPassword\": \"NewPassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/ResetPasswordWithToken",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"ResetPasswordWithToken"
+							]
+						},
+						"description": "Reset password using reset token"
+					},
+					"response": []
+				},
+				{
+					"name": "Check Email Exists",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/account/emailexists?email=patient@example.com",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"emailexists"
+							],
+							"query": [
+								{
+									"key": "email",
+									"value": "patient@example.com"
+								}
+							]
+						},
+						"description": "Check if email is already registered"
+					},
+					"response": []
+				},
+				{
+					"name": "Check Phone Exists",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/account/phoneexists?phoneNumber=+201234567890",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"phoneexists"
+							],
+							"query": [
+								{
+									"key": "phoneNumber",
+									"value": "+201234567890"
+								}
+							]
+						},
+						"description": "Check if phone number is already registered"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/account/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"logout"
+							]
+						},
+						"description": "Logout current user"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication and account management endpoints"
+		},
+		{
+			"name": "User Profile",
+			"item": [
+				{
+					"name": "Get Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/account/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"profile"
+							]
+						},
+						"description": "Get current user profile"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"displayName\": \"John Updated Doe\",\n  \"phoneNumber\": \"+201234567899\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"profile"
+							]
+						},
+						"description": "Update user profile information"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Addresses",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/account/addresses",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"addresses"
+							]
+						},
+						"description": "Get all addresses for current user"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Address",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"street\": \"123 Main Street\",\n  \"city\": \"Cairo\",\n  \"state\": \"Cairo Governorate\",\n  \"zipCode\": \"11511\",\n  \"country\": \"Egypt\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/addresses",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"addresses"
+							]
+						},
+						"description": "Create a new address"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Address",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe Updated\",\n  \"street\": \"456 New Street\",\n  \"city\": \"Cairo\",\n  \"state\": \"Cairo Governorate\",\n  \"zipCode\": \"11511\",\n  \"country\": \"Egypt\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/account/addresses/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"addresses",
+								"1"
+							]
+						},
+						"description": "Update an existing address"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Address",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/account/addresses/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"account",
+								"addresses",
+								"1"
+							]
+						},
+						"description": "Delete an address"
+					},
+					"response": []
+				}
+			],
+			"description": "User profile and address management"
+		},
+		{
+			"name": "Clinics",
+			"item": [
+				{
+					"name": "Get Clinic Profile by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/clinics/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"clinics",
+								"1"
+							]
+						},
+						"description": "Get clinic profile by ID (public endpoint)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Clinic Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/clinics/my-profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"clinics",
+								"my-profile"
+							]
+						},
+						"description": "Get current clinic's own profile (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Clinic Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"doctorName\": \"Dr. Sarah Ahmed Updated\",\n  \"specialty\": \"Cardiology\",\n  \"description\": \"Specialized cardiac care clinic\",\n  \"slotDurationMinutes\": 45\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/clinics/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"clinics",
+								"1"
+							]
+						},
+						"description": "Update clinic profile (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Clinic Address",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/clinics/1/address",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"clinics",
+								"1",
+								"address"
+							]
+						},
+						"description": "Get clinic address (public endpoint)"
+					},
+					"response": []
+				},
+				{
+					"name": "Create or Update Clinic Address",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"country\": \"Egypt\",\n  \"city\": \"Cairo\",\n  \"area\": \"Heliopolis\",\n  \"street\": \"El Hegaz Street\",\n  \"building\": \"Building 456\",\n  \"notes\": \"Near Merryland Park\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/clinics/1/address",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"clinics",
+								"1",
+								"address"
+							]
+						},
+						"description": "Create or update clinic address (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Clinic Phones",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/clinics/1/phones",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"clinics",
+								"1",
+								"phones"
+							]
+						},
+						"description": "Get all phone numbers for a clinic (public endpoint)"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Clinic Phone",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phoneNumber\": \"+201098765435\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/clinics/1/phones",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"clinics",
+								"1",
+								"phones"
+							]
+						},
+						"description": "Add phone number to clinic (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Clinics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/clinics/search?specialty=General&city=Cairo&pageNumber=1&pageSize=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"clinics",
+								"search"
+							],
+							"query": [
+								{
+									"key": "specialty",
+									"value": "General"
+								},
+								{
+									"key": "city",
+									"value": "Cairo"
+								},
+								{
+									"key": "pageNumber",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Search clinics by filters (public endpoint)"
+					},
+					"response": []
+				}
+			],
+			"description": "Clinic management endpoints"
+		},
+		{
+			"name": "Appointments",
+			"item": [
+				{
+					"name": "Book Appointment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.id) {",
+									"        pm.environment.set('appointmentId', response.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"clinicId\": 1,\n  \"appointmentDate\": \"2026-01-30\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/book",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"book"
+							]
+						},
+						"description": "Book a new appointment (Patient role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Appointment Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}"
+							]
+						},
+						"description": "Get appointment details by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Appointment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/cancel",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}",
+								"cancel"
+							]
+						},
+						"description": "Cancel an appointment (Patient role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Appointments (Patient)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/patient/my-appointments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"patient",
+								"my-appointments"
+							]
+						},
+						"description": "Get all appointments for current patient"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Upcoming Appointments (Patient)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/patient/upcoming",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"patient",
+								"upcoming"
+							]
+						},
+						"description": "Get upcoming appointments for current patient"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Past Appointments (Patient)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/patient/past",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"patient",
+								"past"
+							]
+						},
+						"description": "Get past appointments for current patient"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Appointment Status (Clinic)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}",
+								"status"
+							]
+						},
+						"description": "Update appointment status (Clinic role only). Status: 0=Booked, 1=InProgress, 2=Completed, 3=Canceled, 4=Delayed"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Appointment In Progress (Clinic)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/start",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}",
+								"start"
+							]
+						},
+						"description": "Mark appointment as in progress (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Appointment Completed (Clinic)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/complete",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}",
+								"complete"
+							]
+						},
+						"description": "Mark appointment as completed (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Appointment Delayed (Clinic)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/delay",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}",
+								"delay"
+							]
+						},
+						"description": "Mark appointment as delayed (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Call Next Patient (Clinic)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/clinic/call-next?date=2026-01-30",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"clinic",
+								"call-next"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2026-01-30"
+								}
+							]
+						},
+						"description": "Call next patient in queue (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Clinic Queue (Clinic)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/clinic/queue?date=2026-01-30",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"clinic",
+								"queue"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2026-01-30"
+								}
+							]
+						},
+						"description": "Get clinic queue for specific date (Clinic role only)"
+					},
+					"response": []
+				}
+			],
+			"description": "Appointment management endpoints"
+		},
+		{
+			"name": "Working Schedule",
+			"item": [
+				{
+					"name": "Get Working Days",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/working-days",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"working-days"
+							]
+						},
+						"description": "Get all working days (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Working Day by Day of Week",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/working-days/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"working-days",
+								"1"
+							]
+						},
+						"description": "Get working day by day of week. 0=Sunday, 1=Monday, ..., 6=Saturday (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Update Working Days",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"workingDays\": [\n    {\n      \"dayOfWeek\": 1,\n      \"isOpen\": true,\n      \"openingTime\": \"09:00:00\",\n      \"closingTime\": \"17:00:00\",\n      \"maxAppointments\": 20\n    },\n    {\n      \"dayOfWeek\": 2,\n      \"isOpen\": true,\n      \"openingTime\": \"09:00:00\",\n      \"closingTime\": \"17:00:00\",\n      \"maxAppointments\": 20\n    },\n    {\n      \"dayOfWeek\": 3,\n      \"isOpen\": true,\n      \"openingTime\": \"09:00:00\",\n      \"closingTime\": \"17:00:00\",\n      \"maxAppointments\": 20\n    },\n    {\n      \"dayOfWeek\": 4,\n      \"isOpen\": true,\n      \"openingTime\": \"09:00:00\",\n      \"closingTime\": \"17:00:00\",\n      \"maxAppointments\": 20\n    },\n    {\n      \"dayOfWeek\": 5,\n      \"isOpen\": true,\n      \"openingTime\": \"09:00:00\",\n      \"closingTime\": \"13:00:00\",\n      \"maxAppointments\": 10\n    },\n    {\n      \"dayOfWeek\": 6,\n      \"isOpen\": false,\n      \"openingTime\": null,\n      \"closingTime\": null,\n      \"maxAppointments\": 0\n    },\n    {\n      \"dayOfWeek\": 0,\n      \"isOpen\": false,\n      \"openingTime\": null,\n      \"closingTime\": null,\n      \"maxAppointments\": 0\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/working-days",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"working-days"
+							]
+						},
+						"description": "Bulk update all working days for the week (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Single Working Day",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"isOpen\": true,\n  \"openingTime\": \"10:00:00\",\n  \"closingTime\": \"18:00:00\",\n  \"maxAppointments\": 25\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/working-days/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"working-days",
+								"1"
+							]
+						},
+						"description": "Update a specific working day (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Exceptions",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/exceptions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"exceptions"
+							]
+						},
+						"description": "Get all exception dates (holidays/closures) for clinic (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Exception",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"exceptionDate\": \"2026-02-14\",\n  \"reason\": \"Valentine's Day - Clinic Closed\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/exceptions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"exceptions"
+							]
+						},
+						"description": "Add exception date (holiday/closure) (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Exception",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Updated: Valentine's Day Holiday\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/exceptions/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"exceptions",
+								"1"
+							]
+						},
+						"description": "Update exception reason (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Exception",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/exceptions/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"exceptions",
+								"1"
+							]
+						},
+						"description": "Delete exception date (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Check Clinic Availability",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/1/available?date=2026-01-30",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"1",
+								"available"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2026-01-30"
+								}
+							]
+						},
+						"description": "Check if clinic is available on specific date (public endpoint)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Daily Capacity",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/1/capacity?date=2026-01-30",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"1",
+								"capacity"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2026-01-30"
+								}
+							]
+						},
+						"description": "Get daily capacity for specific date (public endpoint)"
+					},
+					"response": []
+				}
+			],
+			"description": "Clinic working schedule and exceptions management"
+		},
+		{
+			"name": "Ratings",
+			"item": [
+				{
+					"name": "Submit Rating",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"clinicId\": 1,\n  \"rating\": 5,\n  \"comment\": \"Excellent service! Very professional staff and clean facilities.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/ratings",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"ratings"
+							]
+						},
+						"description": "Submit a rating for a clinic (Patient role only, must have completed appointment)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Rating",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 4,\n  \"comment\": \"Updated review: Good service overall.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/ratings/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"ratings",
+								"1"
+							]
+						},
+						"description": "Update an existing rating (Patient role only, own rating)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Rating",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/ratings/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"ratings",
+								"1"
+							]
+						},
+						"description": "Delete a rating (Patient role only, own rating)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Clinic Ratings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/ratings/clinic/1?pageNumber=1&pageSize=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"ratings",
+								"clinic",
+								"1"
+							],
+							"query": [
+								{
+									"key": "pageNumber",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all ratings for a clinic with summary statistics (public endpoint)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Patient's Own Ratings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/ratings/my-ratings",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"ratings",
+								"my-ratings"
+							]
+						},
+						"description": "Get all ratings submitted by current patient (Patient role only)"
+					},
+					"response": []
+				}
+			],
+			"description": "Clinic rating and review management"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-refresh token if needed (placeholder for future enhancement)",
+					"const token = pm.environment.get('authToken');",
+					"if (!token) {",
+					"    console.log('⚠️ No auth token found. Please login first.');",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test for all requests",
+					"pm.test('Response time is less than 5000ms', () => {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});",
+					"",
+					"// Log errors for debugging",
+					"if (pm.response.code >= 400) {",
+					"    console.log('❌ Error Response:', pm.response.json());",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://localhost:7101",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userRole",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userEmail",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "displayName",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "appointmentId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "resetToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "patientEmail",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "clinicEmail",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
