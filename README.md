@@ -840,11 +840,76 @@ Get patient's rating for a clinic (Patient only).
 
 ### 📆 Working Schedule Endpoints
 
-#### GET `/workingschedule/working-days`
-Get all working days for clinic (Clinic only).
+#### GET `/workingschedule/{clinicId}/schedule`
+Get complete clinic working schedule with exceptions (Public).
+
+**Authorization**: None (Public)  
+**Response**: `ClinicScheduleDto` with:
+- All 7 days of the week with operating hours
+- Upcoming exception dates (holidays/closures)
+
+**Example Response**:
+```json
+{
+  "clinicId": 1,
+  "workingDays": [
+    {
+      "id": 1,
+      "dayOfWeek": 0,
+      "dayName": "Sunday",
+      "isOpen": false
+    },
+    {
+      "id": 2,
+      "dayOfWeek": 1,
+      "dayName": "Monday",
+      "isOpen": true,
+      "startTime": "09:00:00",
+      "endTime": "17:00:00",
+      "maxPatients": 20
+    }
+  ],
+  "exceptions": [
+    {
+      "id": 1,
+      "exceptionDate": "2026-12-25",
+      "reason": "Christmas Holiday",
+      "isClosed": true
+    }
+  ]
+}
+```
+
+#### GET `/workingschedule/{clinicId}/working-days`
+Get all working days for specific clinic (Public).
+
+**Authorization**: None (Public)  
+**Response**: `List<ClinicWorkingDayDto>`
+
+#### GET `/workingschedule/{clinicId}/working-days/{dayOfWeek}`
+Get specific working day for clinic (Public).
+
+**Authorization**: None (Public)  
+**Path Params**: `dayOfWeek` (0=Sunday, 1=Monday, etc.)  
+**Response**: `ClinicWorkingDayDto`
+
+#### GET `/workingschedule/{clinicId}/exceptions`
+Get all exception dates for clinic (Public).
+
+**Authorization**: None (Public)  
+**Response**: `List<ClinicExceptionDto>`
+
+#### GET `/workingschedule/my-working-days`
+Get current clinic's own working days (Clinic only).
 
 **Authorization**: `Bearer <token>` (Role: Clinic)  
 **Response**: `List<ClinicWorkingDayDto>`
+
+#### GET `/workingschedule/my-exceptions`
+Get current clinic's own exceptions (Clinic only).
+
+**Authorization**: `Bearer <token>` (Role: Clinic)  
+**Response**: `List<ClinicExceptionDto>`
 
 #### PUT `/workingschedule/working-days`
 Bulk update working days (Clinic only).
@@ -852,6 +917,12 @@ Bulk update working days (Clinic only).
 **Authorization**: `Bearer <token>` (Role: Clinic)  
 **Request Body**: `BulkUpdateWorkingDaysDto`  
 **Response**: `List<ClinicWorkingDayDto>`
+
+#### PUT `/workingschedule/working-days/{id}`
+Update specific working day (Clinic only).
+
+**Authorization**: `Bearer <token>` (Role: Clinic)  
+**Response**: `ClinicWorkingDayDto`
 
 #### POST `/workingschedule/exceptions`
 Add exception date (holiday/closure) (Clinic only).
@@ -867,12 +938,31 @@ Add exception date (holiday/closure) (Clinic only).
 ```
 **Response**: `ClinicExceptionDto`
 
+#### PUT `/workingschedule/exceptions/{id}`
+Update exception date (Clinic only).
+
+**Authorization**: `Bearer <token>` (Role: Clinic)  
+**Response**: `ClinicExceptionDto`
+
+#### DELETE `/workingschedule/exceptions/{id}`
+Delete exception date (Clinic only).
+
+**Authorization**: `Bearer <token>` (Role: Clinic)  
+**Response**: Success message
+
 #### GET `/workingschedule/{clinicId}/available`
 Check if clinic is available on a date (Public).
 
 **Authorization**: None (Public)  
 **Query Params**: `date=2024-12-20`  
 **Response**: `{ clinicId, date, isAvailable }`
+
+#### GET `/workingschedule/{clinicId}/capacity`
+Get daily capacity for specific date (Public).
+
+**Authorization**: None (Public)  
+**Query Params**: `date=2024-12-20`  
+**Response**: `{ clinicId, date, capacity }`
 
 ---
 

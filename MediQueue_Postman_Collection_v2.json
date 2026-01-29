@@ -1363,37 +1363,49 @@
 			"name": "Working Schedule",
 			"item": [
 				{
-					"name": "Get Working Days",
+					"name": "Get Clinic Complete Schedule (Public)",
 					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/workingschedule/working-days",
+							"raw": "{{baseUrl}}/api/workingschedule/1/schedule",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
 								"workingschedule",
-								"working-days"
+								"1",
+								"schedule"
 							]
 						},
-						"description": "Get all working days (Clinic role only)"
+						"description": "Get complete clinic schedule including working days and exceptions (Public endpoint - no authentication required)"
 					},
 					"response": []
 				},
 				{
-					"name": "Get Working Day by Day of Week",
+					"name": "Get Clinic Working Days (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/1/working-days",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"1",
+								"working-days"
+							]
+						},
+						"description": "Get all working days for a specific clinic (Public endpoint - no authentication required)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Working Days (Clinic)",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1408,18 +1420,39 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/workingschedule/working-days/1",
+							"raw": "{{baseUrl}}/api/workingschedule/my-working-days",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
 								"workingschedule",
+								"my-working-days"
+							]
+						},
+						"description": "Get clinic's own working days (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Clinic Working Day by Day of Week (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/1/working-days/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"1",
 								"working-days",
 								"1"
 							]
 						},
-						"description": "Get working day by day of week. 0=Sunday, 1=Monday, ..., 6=Saturday (Clinic role only)"
+						"description": "Get specific working day for a clinic by day of week. 0=Sunday, 1=Monday, ..., 6=Saturday (Public endpoint - no authentication required)"
 					},
 					"response": []
 				},
@@ -1463,7 +1496,7 @@
 					"response": []
 				},
 				{
-					"name": "Update Single Working Day",
+					"name": "Update Single Working Day (Clinic)",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1484,26 +1517,46 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"isOpen\": true,\n  \"openingTime\": \"10:00:00\",\n  \"closingTime\": \"18:00:00\",\n  \"maxAppointments\": 25\n}"
+							"raw": "{\n  \"dayOfWeek\": 1,\n  \"isOpen\": true,\n  \"openingTime\": \"10:00:00\",\n  \"closingTime\": \"18:00:00\",\n  \"maxAppointments\": 25\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/workingschedule/working-days/1",
+							"raw": "{{baseUrl}}/api/workingschedule/working-days",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
 								"workingschedule",
-								"working-days",
-								"1"
+								"working-days"
 							]
 						},
-						"description": "Update a specific working day (Clinic role only)"
+						"description": "Update a specific working day for clinic's own schedule (Clinic role only)"
 					},
 					"response": []
 				},
 				{
-					"name": "Get Exceptions",
+					"name": "Get Clinic Exceptions (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/workingschedule/1/exceptions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"workingschedule",
+								"1",
+								"exceptions"
+							]
+						},
+						"description": "Get all exception dates (holidays/closures) for a specific clinic (Public endpoint - no authentication required)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Exceptions (Clinic)",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1518,22 +1571,22 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/workingschedule/exceptions",
+							"raw": "{{baseUrl}}/api/workingschedule/my-exceptions",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
 								"workingschedule",
-								"exceptions"
+								"my-exceptions"
 							]
 						},
-						"description": "Get all exception dates (holidays/closures) for clinic (Clinic role only)"
+						"description": "Get clinic's own exception dates (holidays/closures) (Clinic role only)"
 					},
 					"response": []
 				},
 				{
-					"name": "Add Exception",
+					"name": "Add Exception (Clinic)",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1567,12 +1620,12 @@
 								"exceptions"
 							]
 						},
-						"description": "Add exception date (holiday/closure) (Clinic role only)"
+						"description": "Add exception date (holiday/closure) to clinic's own schedule (Clinic role only)"
 					},
 					"response": []
 				},
 				{
-					"name": "Update Exception",
+					"name": "Update Exception (Clinic)",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1607,12 +1660,12 @@
 								"1"
 							]
 						},
-						"description": "Update exception reason (Clinic role only)"
+						"description": "Update exception reason for clinic's own schedule (Clinic role only)"
 					},
 					"response": []
 				},
 				{
-					"name": "Delete Exception",
+					"name": "Delete Exception (Clinic)",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1638,7 +1691,7 @@
 								"1"
 							]
 						},
-						"description": "Delete exception date (Clinic role only)"
+						"description": "Delete exception date from clinic's own schedule (Clinic role only)"
 					},
 					"response": []
 				},

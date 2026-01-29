@@ -4,6 +4,13 @@ namespace MediQueue.Core.DTOs;
 
 // ==================== Clinic Profile DTOs ====================
 
+public class ClinicScheduleDto
+{
+    public int ClinicId { get; set; }
+    public List<ClinicWorkingDayDto> WorkingDays { get; set; } = new();
+    public List<ClinicExceptionDto> Exceptions { get; set; } = new();
+}
+
 public class ClinicProfileDto
 {
     public int Id { get; set; }

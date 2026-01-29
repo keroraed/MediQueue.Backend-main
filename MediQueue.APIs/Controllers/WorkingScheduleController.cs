@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MediQueue.APIs.Controllers;
 
-[Authorize(Roles = "Clinic")]
 public class WorkingScheduleController : BaseApiController
 {
     private readonly IWorkingScheduleService _scheduleService;
@@ -20,10 +19,22 @@ public class WorkingScheduleController : BaseApiController
     }
 
     /// <summary>
-    /// Get all working days for clinic (Clinic only)
+    /// Get all working days for clinic by clinic ID (Public)
     /// </summary>
-    [HttpGet("working-days")]
-    public async Task<ActionResult<List<ClinicWorkingDayDto>>> GetWorkingDays()
+    [HttpGet("{clinicId}/working-days")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<ClinicWorkingDayDto>>> GetWorkingDays(int clinicId)
+    {
+        var workingDays = await _scheduleService.GetWorkingDaysAsync(clinicId);
+        return Ok(workingDays);
+    }
+
+    /// <summary>
+    /// Get current clinic's working days (Clinic only)
+    /// </summary>
+    [HttpGet("my-working-days")]
+    [Authorize(Roles = "Clinic")]
+    public async Task<ActionResult<List<ClinicWorkingDayDto>>> GetMyWorkingDays()
     {
         var clinicId = await GetCurrentClinicIdAsync();
         var workingDays = await _scheduleService.GetWorkingDaysAsync(clinicId);
@@ -31,16 +42,16 @@ public class WorkingScheduleController : BaseApiController
     }
 
     /// <summary>
-    /// Get working day by day of week (Clinic only)
+    /// Get working day by clinic ID and day of week (Public)
     /// </summary>
-    [HttpGet("working-days/{dayOfWeek}")]
-    public async Task<ActionResult<ClinicWorkingDayDto>> GetWorkingDay(DayOfWeekEnum dayOfWeek)
+    [HttpGet("{clinicId}/working-days/{dayOfWeek}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ClinicWorkingDayDto>> GetWorkingDay(int clinicId, DayOfWeekEnum dayOfWeek)
     {
-var clinicId = await GetCurrentClinicIdAsync();
         var workingDay = await _scheduleService.GetWorkingDayAsync(clinicId, dayOfWeek);
         
         if (workingDay == null)
-       return NotFound(new ApiResponse(404, "Working day not found"));
+            return NotFound(new ApiResponse(404, "Working day not found"));
 
         return Ok(workingDay);
     }
@@ -49,6 +60,7 @@ var clinicId = await GetCurrentClinicIdAsync();
     /// Bulk update all working days (Clinic only)
     /// </summary>
     [HttpPut("working-days")]
+    [Authorize(Roles = "Clinic")]
     public async Task<ActionResult<List<ClinicWorkingDayDto>>> BulkUpdateWorkingDays(BulkUpdateWorkingDaysDto dto)
     {
         try
@@ -71,6 +83,7 @@ var clinicId = await GetCurrentClinicIdAsync();
     /// Update a specific working day (Clinic only)
     /// </summary>
     [HttpPut("working-days/{id}")]
+    [Authorize(Roles = "Clinic")]
     public async Task<ActionResult<ClinicWorkingDayDto>> UpdateWorkingDay(int id, UpdateClinicWorkingDayDto dto)
     {
       try
@@ -89,20 +102,33 @@ var clinicId = await GetCurrentClinicIdAsync();
     }
 
     /// <summary>
-    /// Get all exceptions for clinic (Clinic only)
+    /// Get all exceptions for clinic by clinic ID (Public)
     /// </summary>
-    [HttpGet("exceptions")]
- public async Task<ActionResult<List<ClinicExceptionDto>>> GetExceptions()
+    [HttpGet("{clinicId}/exceptions")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<ClinicExceptionDto>>> GetExceptions(int clinicId)
     {
-var clinicId = await GetCurrentClinicIdAsync();
         var exceptions = await _scheduleService.GetExceptionsAsync(clinicId);
         return Ok(exceptions);
     }
 
     /// <summary>
-  /// Add exception date (Clinic only)
+    /// Get current clinic's exceptions (Clinic only)
+    /// </summary>
+    [HttpGet("my-exceptions")]
+    [Authorize(Roles = "Clinic")]
+    public async Task<ActionResult<List<ClinicExceptionDto>>> GetMyExceptions()
+    {
+        var clinicId = await GetCurrentClinicIdAsync();
+        var exceptions = await _scheduleService.GetExceptionsAsync(clinicId);
+        return Ok(exceptions);
+    }
+
+    /// <summary>
+    /// Add exception date (Clinic only)
     /// </summary>
     [HttpPost("exceptions")]
+    [Authorize(Roles = "Clinic")]
     public async Task<ActionResult<ClinicExceptionDto>> AddException(CreateClinicExceptionDto dto)
     {
         try
@@ -125,6 +151,7 @@ var exception = await _scheduleService.AddExceptionAsync(clinicId, dto);
     /// Update exception (Clinic only)
     /// </summary>
     [HttpPut("exceptions/{id}")]
+    [Authorize(Roles = "Clinic")]
     public async Task<ActionResult<ClinicExceptionDto>> UpdateException(int id, UpdateClinicExceptionDto dto)
   {
   try
@@ -142,6 +169,7 @@ var exception = await _scheduleService.AddExceptionAsync(clinicId, dto);
     /// Delete exception (Clinic only)
     /// </summary>
     [HttpDelete("exceptions/{id}")]
+    [Authorize(Roles = "Clinic")]
     public async Task<ActionResult> DeleteException(int id)
     {
     try
@@ -153,6 +181,34 @@ var exception = await _scheduleService.AddExceptionAsync(clinicId, dto);
         {
   return NotFound(new ApiResponse(404, ex.Message));
      }
+    }
+
+    /// <summary>
+    /// Get clinic working schedule with exceptions (Public)
+    /// Allows patients to view clinic operating hours before booking
+    /// </summary>
+    [HttpGet("{clinicId}/schedule")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ClinicScheduleDto>> GetClinicSchedule(int clinicId)
+    {
+        try
+        {
+            var workingDays = await _scheduleService.GetWorkingDaysAsync(clinicId);
+            var exceptions = await _scheduleService.GetExceptionsAsync(clinicId);
+            
+            var schedule = new ClinicScheduleDto
+            {
+                ClinicId = clinicId,
+                WorkingDays = workingDays,
+                Exceptions = exceptions.Where(e => e.ExceptionDate >= DateTime.UtcNow.Date).ToList()
+            };
+            
+            return Ok(schedule);
+        }
+        catch (Exception)
+        {
+            return NotFound(new ApiResponse(404, "Clinic not found"));
+        }
     }
 
     /// <summary>
