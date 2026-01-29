@@ -192,12 +192,13 @@ var phone = await _unitOfWork.Repository<ClinicPhone>().GetByIdAsync(phoneId);
             Specialty = clinic.Specialty,
             Description = clinic.Description,
      SlotDurationMinutes = clinic.SlotDurationMinutes,
- Address = clinic.Address != null ? MapToAddressDto(clinic.Address) : null,
- Phones = clinic.Phones.Select(MapToPhoneDto).ToList(),
-      AverageRating = Math.Round(avgRating, 2),
- TotalRatings = clinic.Ratings.Count,
-       CreatedAt = clinic.CreatedAt
-      };
+        Address = clinic.Address != null ? MapToAddressDto(clinic.Address) : null,
+        Phones = clinic.Phones.Select(MapToPhoneDto).ToList(),
+        WorkingDays = clinic.WorkingDays.Select(MapToWorkingDayDto).OrderBy(w => w.DayOfWeek).ToList(),
+     AverageRating = Math.Round(avgRating, 2),
+        TotalRatings = clinic.Ratings.Count,
+    CreatedAt = clinic.CreatedAt
+    };
     }
 
     private ClinicAddressDto MapToAddressDto(ClinicAddress address)
@@ -218,8 +219,21 @@ var phone = await _unitOfWork.Repository<ClinicPhone>().GetByIdAsync(phoneId);
     {
         return new ClinicPhoneDto
         {
-        Id = phone.Id,
-        PhoneNumber = phone.PhoneNumber
-      };
+      Id = phone.Id,
+            PhoneNumber = phone.PhoneNumber
+        };
+    }
+
+    private ClinicWorkingDayDto MapToWorkingDayDto(ClinicWorkingDay workingDay)
+    {
+   return new ClinicWorkingDayDto
+        {
+      Id = workingDay.Id,
+       DayOfWeek = workingDay.DayOfWeek,
+      DayName = workingDay.DayOfWeek.ToString(),
+    StartTime = workingDay.StartTime,
+       EndTime = workingDay.EndTime,
+            IsClosed = workingDay.IsClosed
+};
     }
 }

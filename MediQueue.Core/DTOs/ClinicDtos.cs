@@ -14,6 +14,7 @@ public class ClinicProfileDto
     public int SlotDurationMinutes { get; set; }
 public ClinicAddressDto? Address { get; set; }
     public List<ClinicPhoneDto> Phones { get; set; } = new();
+    public List<ClinicWorkingDayDto> WorkingDays { get; set; } = new();
     public double AverageRating { get; set; }
     public int TotalRatings { get; set; }
     public DateTime CreatedAt { get; set; }

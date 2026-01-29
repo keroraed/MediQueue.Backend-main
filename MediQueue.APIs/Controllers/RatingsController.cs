@@ -12,7 +12,7 @@ public class RatingsController : BaseApiController
 
     public RatingsController(IRatingService ratingService)
     {
-    _ratingService = ratingService;
+        _ratingService = ratingService;
     }
 
     /// <summary>
@@ -23,10 +23,10 @@ public class RatingsController : BaseApiController
     public async Task<ActionResult<ClinicRatingDto>> SubmitRating(CreateRatingDto dto)
     {
         try
-{
-      var patientId = GetCurrentUserId();
-   var rating = await _ratingService.SubmitRatingAsync(patientId, dto);
- return CreatedAtAction(nameof(GetClinicRatings), new { clinicId = dto.ClinicId }, rating);
+        {
+            var patientId = GetCurrentUserId();
+            var rating = await _ratingService.SubmitRatingAsync(patientId, dto);
+            return CreatedAtAction(nameof(GetClinicRatings), new { clinicId = dto.ClinicId }, rating);
         }
         catch (KeyNotFoundException ex)
         {
@@ -34,9 +34,9 @@ public class RatingsController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-    return BadRequest(new ApiResponse(400, ex.Message));
+            return BadRequest(new ApiResponse(400, ex.Message));
         }
-  catch (ArgumentException ex)
+        catch (ArgumentException ex)
         {
             return BadRequest(new ApiResponse(400, ex.Message));
         }
@@ -47,20 +47,20 @@ public class RatingsController : BaseApiController
     /// </summary>
     [HttpPut("{id}")]
     [Authorize(Roles = "Patient")]
-public async Task<ActionResult<ClinicRatingDto>> UpdateRating(int id, UpdateRatingDto dto)
+    public async Task<ActionResult<ClinicRatingDto>> UpdateRating(int id, UpdateRatingDto dto)
     {
         try
-     {
+        {
             var rating = await _ratingService.UpdateRatingAsync(id, dto);
-      return Ok(rating);
+            return Ok(rating);
         }
         catch (KeyNotFoundException ex)
         {
-  return NotFound(new ApiResponse(404, ex.Message));
- }
-  catch (ArgumentException ex)
-   {
-      return BadRequest(new ApiResponse(400, ex.Message));
+            return NotFound(new ApiResponse(404, ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ApiResponse(400, ex.Message));
         }
     }
 
@@ -78,7 +78,7 @@ public async Task<ActionResult<ClinicRatingDto>> UpdateRating(int id, UpdateRati
         }
         catch (KeyNotFoundException ex)
         {
-   return NotFound(new ApiResponse(404, ex.Message));
+            return NotFound(new ApiResponse(404, ex.Message));
         }
     }
 
@@ -86,19 +86,20 @@ public async Task<ActionResult<ClinicRatingDto>> UpdateRating(int id, UpdateRati
     /// Get all ratings for a clinic with summary (Public)
     /// </summary>
     [HttpGet("clinic/{clinicId}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ClinicRatingSummaryDto>> GetClinicRatings(
         int clinicId,
-      [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
     {
         try
         {
-       var summary = await _ratingService.GetClinicRatingsAsync(clinicId, pageNumber, pageSize);
+            var summary = await _ratingService.GetClinicRatingsAsync(clinicId, pageNumber, pageSize);
             return Ok(summary);
-     }
+        }
         catch (KeyNotFoundException ex)
         {
-  return NotFound(new ApiResponse(404, ex.Message));
+            return NotFound(new ApiResponse(404, ex.Message));
         }
     }
 
@@ -109,17 +110,17 @@ public async Task<ActionResult<ClinicRatingDto>> UpdateRating(int id, UpdateRati
     [Authorize(Roles = "Patient")]
     public async Task<ActionResult<ClinicRatingDto>> GetMyRatingForClinic(int clinicId)
     {
-     var patientId = GetCurrentUserId();
+        var patientId = GetCurrentUserId();
         var rating = await _ratingService.GetPatientRatingForClinicAsync(patientId, clinicId);
 
         if (rating == null)
-  return NotFound(new ApiResponse(404, "You have not rated this clinic yet"));
+            return NotFound(new ApiResponse(404, "You have not rated this clinic yet"));
 
         return Ok(rating);
     }
 
     /// <summary>
-  /// Check if patient can rate a clinic (Patient only)
+    /// Check if patient can rate a clinic (Patient only)
     /// </summary>
     [HttpGet("clinic/{clinicId}/can-rate")]
     [Authorize(Roles = "Patient")]
