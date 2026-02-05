@@ -7,6 +7,7 @@ public interface IAppointmentRepository : IGenericRepository<Appointment>
 {
     Task<Appointment?> GetAppointmentWithDetailsAsync(int appointmentId);
     Task<IReadOnlyList<Appointment>> GetClinicAppointmentsByDateAsync(int clinicId, DateTime date);
+    Task<IReadOnlyList<Appointment>> GetAllClinicAppointmentsAsync(int clinicId); // ? NEW
     Task<IReadOnlyList<Appointment>> GetPatientAppointmentsAsync(string patientId);
     Task<IReadOnlyList<Appointment>> GetPatientUpcomingAppointmentsAsync(string patientId);
     Task<IReadOnlyList<Appointment>> GetPatientPastAppointmentsAsync(string patientId);

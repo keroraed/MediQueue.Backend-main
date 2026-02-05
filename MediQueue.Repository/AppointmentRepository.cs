@@ -23,12 +23,23 @@ public class AppointmentRepository : GenericRepository<Appointment>, IAppointmen
 
     public async Task<IReadOnlyList<Appointment>> GetClinicAppointmentsByDateAsync(int clinicId, DateTime date)
     {
-        var dateOnly = date.Date;
+   var dateOnly = date.Date;
         return await _context.Appointments
         .Include(a => a.Clinic)
       .Where(a => a.ClinicId == clinicId && a.AppointmentDate.Date == dateOnly)
-            .OrderBy(a => a.QueueNumber)
+        .OrderBy(a => a.QueueNumber)
       .ToListAsync();
+    }
+
+    // ? NEW: Get all clinic appointments (no date filter)
+  public async Task<IReadOnlyList<Appointment>> GetAllClinicAppointmentsAsync(int clinicId)
+    {
+        return await _context.Appointments
+     .Include(a => a.Clinic)
+            .Where(a => a.ClinicId == clinicId)
+            .OrderByDescending(a => a.AppointmentDate)
+        .ThenBy(a => a.QueueNumber)
+  .ToListAsync();
     }
 
     public async Task<IReadOnlyList<Appointment>> GetPatientAppointmentsAsync(string patientId)

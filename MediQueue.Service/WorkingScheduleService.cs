@@ -39,42 +39,50 @@ public class WorkingScheduleService : IWorkingScheduleService
         // Add new working days
         foreach (var dayDto in dto.WorkingDays)
         {
-            ValidateWorkingHours(dayDto.StartTime, dayDto.EndTime);
+         // Only validate working hours if the day is not closed
+        if (!dayDto.IsClosed)
+          {
+          ValidateWorkingHours(dayDto.StartTime, dayDto.EndTime);
+    }
 
-          var workingDay = new ClinicWorkingDay
-{
-         ClinicId = clinicId,
+            var workingDay = new ClinicWorkingDay
+         {
+   ClinicId = clinicId,
           DayOfWeek = dayDto.DayOfWeek,
     StartTime = dayDto.StartTime,
-           EndTime = dayDto.EndTime,
-         IsClosed = dayDto.IsClosed
-    };
+     EndTime = dayDto.EndTime,
+                IsClosed = dayDto.IsClosed
+            };
 
-        _unitOfWork.WorkingDays.Add(workingDay);
+            _unitOfWork.WorkingDays.Add(workingDay);
         }
 
-        await _unitOfWork.Complete();
+    await _unitOfWork.Complete();
 
         var updatedDays = await _unitOfWork.WorkingDays.GetClinicWorkingDaysAsync(clinicId);
         return updatedDays.Select(MapToWorkingDayDto).ToList();
     }
 
-  public async Task<ClinicWorkingDayDto> UpdateWorkingDayAsync(int workingDayId, UpdateClinicWorkingDayDto dto)
+    public async Task<ClinicWorkingDayDto> UpdateWorkingDayAsync(int workingDayId, UpdateClinicWorkingDayDto dto)
     {
-        var workingDay = await _unitOfWork.WorkingDays.GetByIdAsync(workingDayId);
-        if (workingDay == null)
+  var workingDay = await _unitOfWork.WorkingDays.GetByIdAsync(workingDayId);
+    if (workingDay == null)
             throw new KeyNotFoundException($"Working day with ID {workingDayId} not found");
 
-        ValidateWorkingHours(dto.StartTime, dto.EndTime);
+  // Only validate working hours if the day is not closed
+        if (!dto.IsClosed)
+     {
+            ValidateWorkingHours(dto.StartTime, dto.EndTime);
+     }
 
         workingDay.StartTime = dto.StartTime;
-     workingDay.EndTime = dto.EndTime;
+  workingDay.EndTime = dto.EndTime;
         workingDay.IsClosed = dto.IsClosed;
 
-   _unitOfWork.WorkingDays.Update(workingDay);
- await _unitOfWork.Complete();
+        _unitOfWork.WorkingDays.Update(workingDay);
+        await _unitOfWork.Complete();
 
-        return MapToWorkingDayDto(workingDay);
+   return MapToWorkingDayDto(workingDay);
     }
 
     public async Task<List<ClinicExceptionDto>> GetExceptionsAsync(int clinicId)

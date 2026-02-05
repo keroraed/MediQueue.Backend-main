@@ -295,6 +295,48 @@ public async Task<ActionResult<ClinicQueueDto>> GetClinicQueue([FromQuery] DateT
    return Ok(new { appointmentId = id, estimatedWaitMinutes = waitTime });
     }
 
+    /// <summary>
+    /// Get all clinic appointments (Clinic only)
+    /// Returns all appointments for the clinic regardless of date
+    /// </summary>
+  [HttpGet("clinic/all")]
+    [Authorize(Roles = "Clinic")]
+    public async Task<ActionResult<List<AppointmentDto>>> GetAllClinicAppointments()
+    {
+ try
+        {
+ var appUserId = GetCurrentUserId();
+            var clinicId = await GetClinicIdFromUserIdAsync(appUserId);
+            if (clinicId == null)
+            return NotFound(new ApiResponse(404, "Clinic profile not found"));
+     
+          var appointments = await _unitOfWork.Appointments.GetAllClinicAppointmentsAsync(clinicId.Value);
+  
+     // Map to DTOs
+            var appointmentDtos = appointments.Select(apt => new AppointmentDto
+            {
+ Id = apt.Id,
+           ClinicId = apt.ClinicId,
+          ClinicName = apt.Clinic?.DoctorName ?? "Unknown",
+       DoctorName = apt.Clinic?.DoctorName ?? "Unknown",
+Specialty = apt.Clinic?.Specialty ?? "Unknown",
+ PatientId = apt.PatientId,
+    AppointmentDate = apt.AppointmentDate,
+        QueueNumber = apt.QueueNumber,
+       Status = apt.Status,
+      StatusName = apt.Status.ToString(),
+          EstimatedWaitMinutes = 0,
+    CreatedAt = apt.CreatedAt
+            }).OrderByDescending(a => a.AppointmentDate).ToList();
+          
+            return Ok(appointmentDtos);
+ }
+        catch (Exception ex)
+  {
+    return BadRequest(new ApiResponse(400, $"Error getting appointments: {ex.Message}"));
+        }
+    }
+
     private async Task<int?> GetClinicIdFromUserIdAsync(string appUserId)
     {
         var clinic = await _unitOfWork.Clinics.GetClinicByUserIdAsync(appUserId);
