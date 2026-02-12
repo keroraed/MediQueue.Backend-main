@@ -45,16 +45,16 @@ public class AppointmentService : IAppointmentService
         {
             ClinicId = dto.ClinicId,
             PatientId = patientId,
-            AppointmentDate = dto.AppointmentDate.Date,
-            QueueNumber = queueNumber,
-            Status = AppointmentStatus.Booked
-        };
+   AppointmentDate = dto.AppointmentDate, // ? FIXED: Store full DateTime including time
+    QueueNumber = queueNumber,
+          Status = AppointmentStatus.Booked
+     };
 
         _unitOfWork.Appointments.Add(appointment);
         await _unitOfWork.Complete();
 
-        var created = await _unitOfWork.Appointments.GetAppointmentWithDetailsAsync(appointment.Id);
-        return MapToAppointmentDto(created!);
+      var created = await _unitOfWork.Appointments.GetAppointmentWithDetailsAsync(appointment.Id);
+    return MapToAppointmentDto(created!);
     }
 
     public async Task CancelAppointmentAsync(int appointmentId, string userId)

@@ -21,6 +21,9 @@ public static class ApplicationServicesExtensions
             b => b.MigrationsAssembly("MediQueue.Repository"));
         });
 
+        // Add Memory Cache for performance optimization
+     services.AddMemoryCache();
+
         // Add AutoMapper
         services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 

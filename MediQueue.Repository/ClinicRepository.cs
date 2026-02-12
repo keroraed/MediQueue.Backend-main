@@ -34,47 +34,50 @@ public class ClinicRepository : GenericRepository<ClinicProfile>, IClinicReposit
     public async Task<IReadOnlyList<ClinicProfile>> GetClinicsBySpecialtyAsync(string specialty)
     {
   return await _context.ClinicProfiles
-   .Include(c => c.Address)
-    .Include(c => c.Phones)
-       .Include(c => c.Ratings)
-       .Where(c => c.Specialty.ToLower().Contains(specialty.ToLower()))
-  .ToListAsync();
+       .Include(c => c.Address)
+      .Include(c => c.Phones)
+     .Include(c => c.WorkingDays)
+   .Include(c => c.Ratings)
+ .Where(c => c.Specialty.ToLower().Contains(specialty.ToLower()))
+            .ToListAsync();
     }
 
     public async Task<IReadOnlyList<ClinicProfile>> GetClinicsByCityAsync(string city)
     {
-     return await _context.ClinicProfiles
-.Include(c => c.Address)
-   .Include(c => c.Phones)
-  .Include(c => c.Ratings)
+        return await _context.ClinicProfiles
+ .Include(c => c.Address)
+ .Include(c => c.Phones)
+     .Include(c => c.WorkingDays)
+   .Include(c => c.Ratings)
             .Where(c => c.Address != null && c.Address.City.ToLower().Contains(city.ToLower()))
             .ToListAsync();
     }
 
     public async Task<IReadOnlyList<ClinicProfile>> SearchClinicsAsync(string? specialty, string? city, double? minRating)
-{
+    {
         var query = _context.ClinicProfiles
- .Include(c => c.Address)
-            .Include(c => c.Phones)
-    .Include(c => c.Ratings)
-         .AsQueryable();
+          .Include(c => c.Address)
+      .Include(c => c.Phones)
+      .Include(c => c.WorkingDays)
+            .Include(c => c.Ratings)
+  .AsQueryable();
 
-        if (!string.IsNullOrEmpty(specialty))
+      if (!string.IsNullOrEmpty(specialty))
         {
-query = query.Where(c => c.Specialty.ToLower().Contains(specialty.ToLower()));
+  query = query.Where(c => c.Specialty.ToLower().Contains(specialty.ToLower()));
         }
 
-  if (!string.IsNullOrEmpty(city))
- {
-            query = query.Where(c => c.Address != null && c.Address.City.ToLower().Contains(city.ToLower()));
- }
+        if (!string.IsNullOrEmpty(city))
+   {
+     query = query.Where(c => c.Address != null && c.Address.City.ToLower().Contains(city.ToLower()));
+        }
 
         if (minRating.HasValue)
         {
-       query = query.Where(c => c.Ratings.Any() && c.Ratings.Average(r => r.Rating) >= minRating.Value);
+    query = query.Where(c => c.Ratings.Any() && c.Ratings.Average(r => r.Rating) >= minRating.Value);
         }
 
-        return await query.ToListAsync();
+      return await query.ToListAsync();
     }
 
     public async Task<bool> ClinicExistsForUserAsync(string appUserId)

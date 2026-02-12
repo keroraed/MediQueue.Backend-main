@@ -224,13 +224,21 @@ var exception = await _scheduleService.AddExceptionAsync(clinicId, dto);
 
     /// <summary>
     /// Get daily capacity for a specific date (Public)
+    /// Returns detailed capacity information including current bookings, available slots, and working hours
     /// </summary>
     [HttpGet("{clinicId}/capacity")]
     [AllowAnonymous]
- public async Task<ActionResult<int>> GetDailyCapacity(int clinicId, [FromQuery] DateTime date)
+public async Task<ActionResult<DailyCapacityDto>> GetDailyCapacity(int clinicId, [FromQuery] DateTime date)
     {
-        var capacity = await _scheduleService.GetDailyCapacityAsync(clinicId, date);
-        return Ok(new { clinicId, date = date.Date, capacity });
+        try
+        {
+   var capacity = await _scheduleService.GetDailyCapacityDetailsAsync(clinicId, date);
+            return Ok(capacity);
+        }
+catch (Exception ex)
+    {
+      return BadRequest(new ApiResponse(400, $"Error retrieving capacity: {ex.Message}"));
+        }
     }
 
     private async Task<int> GetCurrentClinicIdAsync()

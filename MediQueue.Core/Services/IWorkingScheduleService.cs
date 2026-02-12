@@ -20,4 +20,5 @@ public interface IWorkingScheduleService
     // Availability Check
     Task<bool> IsClinicAvailableAsync(int clinicId, DateTime date);
     Task<int> GetDailyCapacityAsync(int clinicId, DateTime date);
+    Task<DailyCapacityDto> GetDailyCapacityDetailsAsync(int clinicId, DateTime date);
 }

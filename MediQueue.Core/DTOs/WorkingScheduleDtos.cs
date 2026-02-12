@@ -75,3 +75,22 @@ public class UpdateClinicExceptionDto
     [StringLength(500)]
     public required string Reason { get; set; }
 }
+
+// ==================== Capacity DTOs ====================
+
+/// <summary>
+/// Enhanced daily capacity response with detailed booking information
+/// </summary>
+public class DailyCapacityDto
+{
+    public int ClinicId { get; set; }
+    public DateTime Date { get; set; }
+    public int CurrentBookings { get; set; }
+    public int MaxCapacity { get; set; }
+    public int AvailableSlots { get; set; }
+    public TimeSpan StartTime { get; set; }
+    public TimeSpan EndTime { get; set; }
+    public bool IsAvailable { get; set; }
+    public string? Reason { get; set; }
+    public int SlotDurationMinutes { get; set; }
+}
