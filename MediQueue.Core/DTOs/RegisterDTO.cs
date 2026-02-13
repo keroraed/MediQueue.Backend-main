@@ -16,7 +16,7 @@ public class RegisterDTO
     public string DisplayName { get; set; } = null!;
   
     [Required]
- [Phone]
+    [Phone]
     public string PhoneNumber { get; set; } = null!;
     
     [Required]
@@ -48,13 +48,20 @@ public class RegisterPatientDTO
     [StringLength(100, MinimumLength = 6)]
     public string Password { get; set; } = null!;
 
-    // Optional patient-specific fields
-    public DateTime? DateOfBirth { get; set; }
-    public string? Gender { get; set; } // Male, Female, Other
-    public string? BloodType { get; set; } // A+, A-, B+, B-, AB+, AB-, O+, O-
+    // Required patient-specific fields
+    [Required]
+    public DateTime DateOfBirth { get; set; }
+    
+    [Required]
+    public string Gender { get; set; } = null!; // Male, Female, Other
+    
+    [Required]
+    public string BloodType { get; set; } = null!; // A+, A-, B+, B-, AB+, AB-, O+, O-
+  
+    // Optional fields
     public string? Address { get; set; }
     public string? EmergencyContact { get; set; }
-  public string? EmergencyContactPhone { get; set; }
+    public string? EmergencyContactPhone { get; set; }
 }
 
 /// <summary>
@@ -85,10 +92,13 @@ public class RegisterClinicDTO
     public string DoctorName { get; set; } = null!;
 
     [Required]
-  [MinLength(3)]
+    [MinLength(3)]
     public string Specialty { get; set; } = null!;
 
-    public string? Description { get; set; }
+    [Required]
+    [MinLength(10)]
+    [StringLength(2000)]
+    public string Description { get; set; } = null!;
 
     [Range(5, 120)]
     public int SlotDurationMinutes { get; set; } = 30;
@@ -100,11 +110,11 @@ public class RegisterClinicDTO
     [Required]
     public string City { get; set; } = null!;
 
-  [Required]
+    [Required]
     public string Area { get; set; } = null!;
 
     [Required]
-  public string Street { get; set; } = null!;
+    public string Street { get; set; } = null!;
 
     [Required]
     public string Building { get; set; } = null!;

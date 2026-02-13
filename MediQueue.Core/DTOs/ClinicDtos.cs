@@ -17,9 +17,9 @@ public class ClinicProfileDto
     public string UserId { get; set; } = string.Empty;
     public required string DoctorName { get; set; }
     public required string Specialty { get; set; }
-    public string? Description { get; set; }
+    public required string Description { get; set; }
     public int SlotDurationMinutes { get; set; }
-public ClinicAddressDto? Address { get; set; }
+    public ClinicAddressDto? Address { get; set; }
     public List<ClinicPhoneDto> Phones { get; set; } = new();
     public List<ClinicWorkingDayDto> WorkingDays { get; set; } = new();
     public double AverageRating { get; set; }
@@ -31,14 +31,16 @@ public class CreateClinicProfileDto
 {
     [Required]
     [StringLength(200)]
-  public required string DoctorName { get; set; }
+    public required string DoctorName { get; set; }
 
     [Required]
     [StringLength(200)]
     public required string Specialty { get; set; }
 
+    [Required]
+    [MinLength(10)]
     [StringLength(2000)]
-    public string? Description { get; set; }
+    public required string Description { get; set; }
 
     [Range(10, 120)]
     public int SlotDurationMinutes { get; set; } = 30;
@@ -54,8 +56,10 @@ public class UpdateClinicProfileDto
     [StringLength(200)]
     public required string Specialty { get; set; }
 
+    [Required]
+    [MinLength(10)]
     [StringLength(2000)]
-    public string? Description { get; set; }
+    public required string Description { get; set; }
 
     [Range(10, 120)]
     public int SlotDurationMinutes { get; set; }
