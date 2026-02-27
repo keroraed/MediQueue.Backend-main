@@ -191,7 +191,12 @@ var phone = await _unitOfWork.Repository<ClinicPhone>().GetByIdAsync(phoneId);
             DoctorName = clinic.DoctorName,
             Specialty = clinic.Specialty,
             Description = clinic.Description,
-     SlotDurationMinutes = clinic.SlotDurationMinutes,
+            SlotDurationMinutes = clinic.SlotDurationMinutes,
+            ProfilePictureUrl = clinic.ProfilePictureUrl,
+            ConsultationFee = clinic.ConsultationFee,
+            PaymentMethods = string.IsNullOrEmpty(clinic.PaymentMethods)
+                ? new List<string>()
+                : clinic.PaymentMethods.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
         Address = clinic.Address != null ? MapToAddressDto(clinic.Address) : null,
         Phones = clinic.Phones.Select(MapToPhoneDto).ToList(),
         WorkingDays = clinic.WorkingDays.Select(MapToWorkingDayDto).OrderBy(w => w.DayOfWeek).ToList(),

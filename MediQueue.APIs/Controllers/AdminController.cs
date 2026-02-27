@@ -1,6 +1,8 @@
 using MediQueue.APIs.Errors;
+using MediQueue.Core.DTOs;
 using MediQueue.Core.Entities.Identity;
 using MediQueue.Core.Repositories;
+using MediQueue.Repository.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -13,11 +15,19 @@ public class AdminController : BaseApiController
 {
     private readonly UserManager<AppUser> _userManager;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly AppIdentityDbContext _identityContext;
+    private readonly IWebHostEnvironment _env;
 
-    public AdminController(UserManager<AppUser> userManager, IUnitOfWork unitOfWork)
+    public AdminController(
+        UserManager<AppUser> userManager,
+        IUnitOfWork unitOfWork,
+        AppIdentityDbContext identityContext,
+        IWebHostEnvironment env)
     {
-   _userManager = userManager;
-     _unitOfWork = unitOfWork;
+        _userManager = userManager;
+        _unitOfWork = unitOfWork;
+        _identityContext = identityContext;
+        _env = env;
     }
 
     /// <summary>
@@ -216,6 +226,138 @@ catch (Exception ex)
     }
 
     /// <summary>
+    /// Create a new clinic account (Admin only).
+    /// Accepts multipart/form-data so a profile picture can be uploaded.
+    /// </summary>
+    [HttpPost("clinics")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult> AddClinic([FromForm] AdminCreateClinicDto dto)
+    {
+        using var identityTransaction = await _identityContext.Database.BeginTransactionAsync();
+        try
+        {
+            // 1. Create Identity user
+            var user = new AppUser
+            {
+                DisplayName = dto.DisplayName,
+                Email = dto.Email,
+                UserName = dto.Email,
+                PhoneNumber = dto.PhoneNumber,
+                DateCreated = DateTime.UtcNow,
+                EmailConfirmed = true // Admin-created clinics are pre-verified
+            };
+
+            var identityResult = await _userManager.CreateAsync(user, dto.Password);
+            if (!identityResult.Succeeded)
+            {
+                var duplicate = identityResult.Errors.FirstOrDefault(e =>
+                    e.Code == "DuplicateUserName" || e.Code == "DuplicateEmail");
+
+                if (duplicate != null)
+                    return BadRequest(new ApiResponse(400, "Email address is already in use"));
+
+                return BadRequest(new ApiResponse(400,
+                    string.Join(", ", identityResult.Errors.Select(e => e.Description))));
+            }
+
+            await _userManager.AddToRoleAsync(user, "Clinic");
+            await identityTransaction.CommitAsync();
+
+            // 2. Handle profile picture upload
+            string? profilePictureUrl = null;
+            if (dto.ProfilePicture != null && dto.ProfilePicture.Length > 0)
+            {
+                var uploadsFolder = Path.Combine(_env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"), "uploads", "clinic-pictures");
+                Directory.CreateDirectory(uploadsFolder);
+
+                var ext = Path.GetExtension(dto.ProfilePicture.FileName).ToLowerInvariant();
+                var fileName = $"{Guid.NewGuid()}{ext}";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await dto.ProfilePicture.CopyToAsync(stream);
+                }
+
+                profilePictureUrl = $"/uploads/clinic-pictures/{fileName}";
+            }
+
+            // 3. Create business User entity
+            try
+            {
+                var businessUser = new Core.Entities.User
+                {
+                    Email = dto.Email,
+                    PasswordHash = user.PasswordHash!,
+                    Role = "Clinic",
+                    IsVerified = true,
+                    IsActive = true
+                };
+                _unitOfWork.Users.Add(businessUser);
+                await _unitOfWork.Complete();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
+            {
+                // Already exists – ignore
+            }
+
+            // 4. Create Clinic Profile
+            var clinicProfile = new Core.Entities.ClinicProfile
+            {
+                AppUserId = user.Id,
+                DoctorName = dto.DoctorName,
+                Specialty = dto.Specialty,
+                Description = dto.Description,
+                SlotDurationMinutes = dto.SlotDurationMinutes,
+                ProfilePictureUrl = profilePictureUrl,
+                ConsultationFee = dto.ConsultationFee,
+                PaymentMethods = dto.PaymentMethods != null && dto.PaymentMethods.Any()
+                    ? string.Join(",", dto.PaymentMethods)
+                    : null
+            };
+            _unitOfWork.Clinics.Add(clinicProfile);
+            await _unitOfWork.Complete();
+
+            // 5. Create Clinic Address
+            var clinicAddress = new Core.Entities.ClinicAddress
+            {
+                ClinicId = clinicProfile.Id,
+                Country = dto.Country,
+                City = dto.City,
+                Area = dto.Area,
+                Street = dto.Street,
+                Building = dto.Building,
+                Notes = dto.AddressNotes
+            };
+            _unitOfWork.Repository<Core.Entities.ClinicAddress>().Add(clinicAddress);
+            await _unitOfWork.Complete();
+
+            // 6. Create additional phones if provided
+            if (dto.AdditionalPhones != null && dto.AdditionalPhones.Any())
+            {
+                foreach (var phone in dto.AdditionalPhones)
+                {
+                    _unitOfWork.Repository<Core.Entities.ClinicPhone>().Add(
+                        new Core.Entities.ClinicPhone { ClinicId = clinicProfile.Id, PhoneNumber = phone });
+                }
+                await _unitOfWork.Complete();
+            }
+
+            return Ok(new ApiResponse(200, "Clinic created successfully"));
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
+        {
+            await identityTransaction.RollbackAsync();
+            return BadRequest(new ApiResponse(400, "Email address or phone number is already in use"));
+        }
+        catch (Exception)
+        {
+            await identityTransaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Get all clinics
     /// </summary>
   [HttpGet("clinics")]
@@ -244,6 +386,11 @@ foreach (var clinic in clinics)
     Email = user?.Email ?? "N/A",
         PhoneNumber = user?.PhoneNumber,
    City = clinic.Address?.City,
+        ProfilePictureUrl = clinic.ProfilePictureUrl,
+        ConsultationFee = clinic.ConsultationFee,
+        PaymentMethods = string.IsNullOrEmpty(clinic.PaymentMethods)
+            ? new List<string>()
+            : clinic.PaymentMethods.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
         AverageRating = avgRating,
       TotalRatings = clinic.Ratings.Count,
          TotalAppointments = clinic.Appointments?.Count ?? 0,
@@ -349,11 +496,14 @@ public class ClinicListDto
 {
     public int Id { get; set; }
     public string DoctorName { get; set; } = string.Empty;
- public string Specialty { get; set; } = string.Empty;
+    public string Specialty { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     public string? City { get; set; }
+    public string? ProfilePictureUrl { get; set; }
+    public decimal? ConsultationFee { get; set; }
+    public List<string> PaymentMethods { get; set; } = new();
     public double? AverageRating { get; set; }
     public int TotalRatings { get; set; }
     public int TotalAppointments { get; set; }

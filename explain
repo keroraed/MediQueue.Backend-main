@@ -1,0 +1,321 @@
+
+### Part 1: System Architecture (Explain First)
+
+MediQueue is a **medical clinic queue management system** built with **.NET 8 Clean Architecture** in 4 layers:
+
+| Layer | Project | Role |
+|-------|---------|------|
+| **Presentation** | MediQueue.APIs | Controllers, middleware, DI config |
+| **Business Logic** | MediQueue.Service | Rules, validations, workflows |
+| **Data Access** | MediQueue.Repository | EF Core repos, Unit of Work, DB context |
+| **Domain** | MediQueue.Core | Entities, DTOs, interfaces, enums — zero dependencies |
+
+Key files to show students:
+- Program.cs — app startup, middleware pipeline, DI registration
+- BaseApiController.cs — base class all controllers inherit
+- ExceptionMiddleware.cs — global error handling
+- ApplicationServicesExtensions.cs — dependency injection setup
+- UnitOfWork.cs — wraps all repositories
+
+**Design Patterns to highlight:**
+- **Repository + Unit of Work** — abstracts data access, single `Complete()` = save
+- **Specification Pattern** — composable queries in SpecificationEvaluator.cs
+- **DTO Pattern** — separate objects for API input/output (never expose entities directly)
+- **Middleware Pipeline** — cross-cutting concerns like error handling
+
+**Two-Database Strategy:**
+- `MediQueueIdentityDB` — users, roles, OTPs, addresses (ASP.NET Identity)
+- `MediQueueDB` — clinics, appointments, ratings, schedules (business data)
+
+**Three Roles:** Admin (seeded), Clinic (registers), Patient (registers)
+
+---
+
+### Part 2: Step-by-Step Postman Testing Flow
+
+Each step below maps to a Postman request. Explain the **why** before each request.
+
+---
+
+#### **Phase 1: Authentication Flow** (Folder: Authentication)
+
+> **Concept:** Before doing anything, users must register, verify email via OTP, then login to get a JWT token.
+
+**Step 1 — Register a Patient**
+- `POST /api/account/register/patient`
+- Body: `{email, displayName, phoneNumber, password, ...optional health fields}`
+- **What happens behind the scenes:** Creates user in Identity DB → assigns "Patient" role → creates mirror record in Business DB → generates 6-digit OTP → hashes with SHA256 → stores in DB → sends email via Gmail SMTP
+- **Show students:** AccountController.cs registration endpoint, OtpService.cs OTP generation
+- **Expected:** 200 OK with message about OTP sent
+
+**Step 2 — Register a Clinic**
+- `POST /api/account/register/clinic`
+- Body includes clinic-specific fields: `doctorName, specialty, slotDurationMinutes, address fields`
+- **What happens extra vs patient:** Also creates `ClinicProfile` + `ClinicAddress` + `ClinicPhone` + 7 `ClinicWorkingDay` records (all closed by default)
+- **Expected:** 200 OK
+
+**Step 3 — Check Email Exists (validation helper)**
+- `GET /api/account/emailexists?email=test@example.com`
+- **Purpose:** Frontend calls this for real-time validation before submit
+- **Expected:** `true` or `false`
+
+**Step 4 — Resend Verification OTP**
+- `POST /api/account/resend-verification-otp` with `{email}`
+- **Rule:** 60-second cooldown between resends
+- **Expected:** Success or "Please wait before requesting a new OTP"
+
+**Step 5 — Verify Email with OTP**
+- `POST /api/account/verify-email` with `{email, otpCode}`
+- **Security:** Max 5 failed attempts → 30-minute lockout. OTP expires in 10 minutes
+- **What happens:** Sets `EmailConfirmed=true` in Identity + `IsVerified=true` in Business DB → returns JWT token immediately
+- **Expected:** `{displayName, email, token, role}`
+
+**Step 6 — Login**
+- `POST /api/account/login` with `{email, password}`
+- **Rule:** Email must be verified (except Admin). Returns JWT token valid for 2 days
+- **Expected:** `{displayName, email, token, role}` — **save this token, you'll need it for everything**
+
+**Step 7 — Get Current User**
+- `GET /api/account/GetCurrentUser` with `Authorization: Bearer <token>`
+- **Purpose:** Verify token works, get user info
+- **Expected:** User details with role
+
+**Step 8 — Password Reset Flow (3 steps)**
+1. `POST /api/account/ForgotPassword` → sends OTP
+2. `POST /api/account/VerifyOtp` → returns `{resetToken}` (valid 5 min)
+3. `POST /api/account/ResetPasswordWithToken` → resets password
+
+> **Teaching moment:** Show how the reset token is different from JWT — it's a short-lived, single-purpose token stored in the OTP record.
+
+---
+
+#### **Phase 2: Clinic Setup** (Folder: Clinics + Working Schedule)
+
+> **Concept:** After a clinic registers and logs in, they must configure their profile, schedule, and then they're ready to receive patients.
+
+**Login as the Clinic first** — use the clinic email/password from Step 2. Save the token.
+
+**Step 9 — View Own Clinic Profile**
+- `GET /api/clinics/my-profile` (Bearer: clinic token)
+- **Expected:** Clinic details with default values
+
+**Step 10 — Update Clinic Profile**
+- `PUT /api/clinics/{id}` with `{doctorName, specialty, description, slotDurationMinutes}`
+- **Validation:** `slotDurationMinutes` must be 10–120
+- **Show students:** ClinicService.cs update logic with ownership check
+
+**Step 11 — Set Working Schedule (CRITICAL)**
+- `PUT /api/workingschedule/working-days` with all 7 days:
+  ```json
+  {
+    "workingDays": [
+      {"dayOfWeek": 0, "startTime": "09:00", "endTime": "17:00", "isClosed": false},
+      {"dayOfWeek": 1, "startTime": "09:00", "endTime": "17:00", "isClosed": false},
+      ...
+      {"dayOfWeek": 5, "startTime": "09:00", "endTime": "14:00", "isClosed": false},
+      {"dayOfWeek": 6, "startTime": "00:00", "endTime": "00:00", "isClosed": true}
+    ]
+  }
+  ```
+- **Rule:** `startTime < endTime`, range 0–24h. `dayOfWeek`: 0=Sunday...6=Saturday
+- **Capacity formula:** `(endTime - startTime) / slotDurationMinutes` → e.g., 8 hours / 30 min = 16 patients/day
+- **Show students:** WorkingScheduleService.cs
+
+**Step 12 — View Full Schedule**
+- `GET /api/workingschedule/{clinicId}/schedule` (public, no auth)
+- **Expected:** All 7 days + any exceptions
+
+**Step 13 — Add Exception (Holiday/Closure)**
+- `POST /api/workingschedule/exceptions` with `{exceptionDate: "2026-03-01", reason: "National Holiday"}`
+- **Rule:** One exception per date per clinic. Blocks booking on that date
+
+**Step 14 — Check Availability**
+- `GET /api/workingschedule/{clinicId}/available?date=2026-02-15`
+- **Logic:** Checks day-of-week → is open? → any exception? → returns `true/false`
+
+**Step 15 — Check Capacity**
+- `GET /api/workingschedule/{clinicId}/capacity?date=2026-02-15`
+- **Returns:** Total slots and remaining slots for that date
+
+---
+
+#### **Phase 3: Patient Books Appointment** (Folder: Appointments)
+
+> **Concept:** The core feature — patient searches for a clinic, checks availability, and books. They get a queue number.
+
+**Login as the Patient** — use patient email/password from Step 1. Save the token.
+
+**Step 16 — Search for Clinics**
+- `GET /api/clinics/search?specialty=Dermatology&city=Cairo` (public)
+- **Also try:** `GET /api/clinics/specialty/{specialty}` and `GET /api/clinics/city/{city}`
+- **Expected:** List of matching clinics with ratings and address info
+
+**Step 17 — View Clinic Details**
+- `GET /api/clinics/{id}` (public) — full profile
+- `GET /api/clinics/{id}/address` — location
+- `GET /api/clinics/{id}/phones` — contact numbers
+
+**Step 18 — Book an Appointment**
+- `POST /api/appointments/book` with `{clinicId, appointmentDate: "2026-02-15"}`
+- **Booking Rules (explain each):**
+  1. Date must be **in the future**
+  2. Clinic must be **open** on that day (working schedule)
+  3. No **exception** on that date
+  4. Clinic **capacity not full** (slots remaining)
+  5. Queue number assigned atomically (DB row locking prevents duplicates)
+- **Show students:** AppointmentService.cs `BookAppointmentAsync` method
+- **Expected:** `{appointmentId, queueNumber, clinicName, date, status: "Booked"}`
+
+**Step 19 — View Appointment Details**
+- `GET /api/appointments/{id}` (Bearer: patient token)
+- **Expected:** Full appointment with queue number, status, clinic info
+
+**Step 20 — Check Wait Time**
+- `GET /api/appointments/{id}/wait-time`
+- **Formula:** `(yourQueueNumber - currentlyServing) * slotDurationMinutes`
+
+**Step 21 — View Upcoming/Past/History**
+- `GET /api/appointments/patient/upcoming` — future booked appointments
+- `GET /api/appointments/patient/past` — completed/cancelled
+- `GET /api/appointments/patient/history` — all appointments
+
+**Step 22 — Cancel Appointment**
+- `POST /api/appointments/{id}/cancel` (Bearer: patient token)
+- **Rules:** Only YOUR appointment. Cannot cancel `Completed` or already `Canceled`
+- **Expected:** Status changes to `Canceled(5)`
+
+---
+
+#### **Phase 4: Clinic Manages Queue** (Folder: Appointments — Clinic side)
+
+> **Concept:** On appointment day, the clinic manages the patient queue — calling next, starting, completing, or delaying patients.
+
+**Login as the Clinic again.**
+
+**Step 23 — View Today's Queue**
+- `GET /api/appointments/clinic/queue?date=2026-02-15` (Bearer: clinic token)
+- **Expected:** Ordered list of appointments by queue number with statuses
+
+**Step 24 — Call Next Patient**
+- `POST /api/appointments/clinic/call-next?date=2026-02-15`
+- **Logic:** Finds lowest queue number with status `Booked` → sets to `InProgress`
+- **Expected:** The called appointment details
+
+**Step 25 — Start / Complete / Delay**
+- `POST /api/appointments/{id}/start` → status = `InProgress(2)`
+- `POST /api/appointments/{id}/complete` → status = `Completed(4)`
+- `POST /api/appointments/{id}/delay` → status = `Delayed(3)`
+- **Alternative:** `PUT /api/appointments/{id}/status` with `{status: 4}` (direct enum)
+
+> **Teaching moment:** Show the **appointment status flow**: `Booked(1)` → `InProgress(2)` → `Completed(4)`, with `Delayed(3)` as a side state, and `Canceled(5)` as patient-initiated exit.
+
+---
+
+#### **Phase 5: Patient Rates Clinic** (Folder: Ratings)
+
+> **Concept:** After a completed appointment, the patient can rate the clinic. One rating per clinic per patient.
+
+**Login as Patient.**
+
+**Step 26 — Submit Rating**
+- `POST /api/ratings` with `{clinicId, rating: 5, review: "Excellent doctor!"}`
+- **Rule:** Must have at least 1 **completed** appointment at this clinic
+- **Rule:** One rating per patient per clinic (use update for changes)
+- **Show students:** RatingService.cs validation
+
+**Step 27 — View Own Rating**
+- `GET /api/ratings/clinic/{clinicId}/my-rating`
+
+**Step 28 — Update Rating**
+- `PUT /api/ratings/{id}` with `{rating: 4, review: "Updated review"}`
+
+**Step 29 — View All Clinic Ratings (Public)**
+- `GET /api/ratings/clinic/{clinicId}?pageNumber=1&pageSize=10`
+- **Returns:** Paginated ratings + summary (average, total, star distribution 1-5)
+
+**Step 30 — Delete Rating**
+- `DELETE /api/ratings/{id}`
+
+---
+
+#### **Phase 6: Admin Dashboard** (Folder: Admin)
+
+> **Concept:** The admin is pre-seeded (`admin@mediqueue.com` / `Admin@123`). They can monitor and manage the entire system.
+
+**Login as Admin.**
+
+**Step 31 — View System Stats**
+- `GET /api/admin/stats` — total users, clinics, appointments, recent activity
+
+**Step 32 — List Users**
+- `GET /api/admin/users?role=Patient&status=active` — filter by role and status
+
+**Step 33 — Lock/Unlock User**
+- `POST /api/admin/users/{userId}/lock` — prevents login
+- `POST /api/admin/users/{userId}/unlock` — restores access
+- **Rule:** Cannot lock the Admin account itself
+
+**Step 34 — View All Appointments**
+- `GET /api/admin/appointments/all` — system-wide view
+- `GET /api/admin/appointments/recent` — last 10
+
+**Step 35 — Delete User or Clinic**
+- `DELETE /api/admin/users/{userId}`
+- `DELETE /api/admin/clinics/{id}`
+- **Rule:** Cannot delete Admin
+
+---
+
+#### **Phase 7: Profile Management** (Folder: User Profile)
+
+**Step 36 — View/Update Profile**
+- `GET /api/account/profile` — current user profile
+- `PUT /api/account/profile` with `{displayName, phoneNumber}`
+
+**Step 37 — Manage Addresses**
+- `GET /api/account/addresses` — list addresses
+- `POST /api/account/addresses` — create new
+- `PUT /api/account/addresses/{id}` — update
+- `DELETE /api/account/addresses/{id}` — remove
+
+---
+
+### Part 3: Recommended Testing Order (Summary Checklist)
+
+| # | Action | As Role | Endpoint |
+|---|--------|---------|----------|
+| 1 | Register Patient | — | `POST /register/patient` |
+| 2 | Register Clinic | — | `POST /register/clinic` |
+| 3 | Verify Patient Email | — | `POST /verify-email` |
+| 4 | Verify Clinic Email | — | `POST /verify-email` |
+| 5 | Login as Clinic | — | `POST /login` |
+| 6 | Set Working Schedule | Clinic | `PUT /working-days` |
+| 7 | Add Exception Date | Clinic | `POST /exceptions` |
+| 8 | Login as Patient | — | `POST /login` |
+| 9 | Search Clinics | Public | `GET /clinics/search` |
+| 10 | Check Availability | Public | `GET /available?date=` |
+| 11 | Book Appointment | Patient | `POST /book` |
+| 12 | View Queue | Clinic | `GET /clinic/queue` |
+| 13 | Call Next Patient | Clinic | `POST /call-next` |
+| 14 | Complete Appointment | Clinic | `POST /complete` |
+| 15 | Rate Clinic | Patient | `POST /ratings` |
+| 16 | Login as Admin | — | `POST /login` |
+| 17 | View Stats | Admin | `GET /stats` |
+| 18 | Test Password Reset | — | 3-step flow |
+
+---
+
+### Verification
+
+- **Auth flow:** Register → verify fails with wrong OTP → verify succeeds → login returns token → token works on protected endpoints
+- **Schedule:** Set schedule → book on open day (succeeds) → book on closed day (fails) → book on exception date (fails)
+- **Capacity:** Fill all slots → next booking fails with "capacity full"
+- **Queue:** Book 3 patients → call-next gives #1 → complete → call-next gives #2
+- **Ratings:** Rate without completed appointment (fails) → complete appointment → rate (succeeds) → rate again (fails, use update)
+- **Roles:** Patient tries clinic endpoint (403) → Clinic tries admin endpoint (403) → Admin accesses everything
+
+### Decisions
+
+- Guide follows the **natural user journey** rather than Postman folder order — this helps students understand the system flow rather than just clicking buttons
+- Each phase builds on the previous one (clinic must exist before patient can book, appointment must be completed before rating)
+- Error cases are included alongside happy paths to teach validation and security

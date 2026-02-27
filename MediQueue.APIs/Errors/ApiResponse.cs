@@ -15,15 +15,15 @@ public class ApiResponse
     {
         return statusCode switch
         {
-            200 => "Success",
-            201 => "Created successfully",
-            204 => "No content",
-            400 => "Bad request",
-            401 => "Unauthorized",
-            403 => "Forbidden",
-            404 => "Resource not found",
-            500 => "Internal server error",
-            _ => "Unknown error occurred"
+            200 => "تمت العملية بنجاح",
+            201 => "تم الإنشاء بنجاح",
+            204 => "لا يوجد محتوى",
+            400 => "طلب غير صحيح",
+            401 => "غير مصرح بالوصول",
+            403 => "محظور",
+            404 => "المورد غير موجود",
+            500 => "خطأ داخلي في الخادم",
+            _ => "حدث خطأ غير معروف"
         };
     }
 }

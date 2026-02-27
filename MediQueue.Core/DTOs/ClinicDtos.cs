@@ -19,6 +19,9 @@ public class ClinicProfileDto
     public required string Specialty { get; set; }
     public required string Description { get; set; }
     public int SlotDurationMinutes { get; set; }
+    public string? ProfilePictureUrl { get; set; }
+    public decimal? ConsultationFee { get; set; }
+    public List<string> PaymentMethods { get; set; } = new();
     public ClinicAddressDto? Address { get; set; }
     public List<ClinicPhoneDto> Phones { get; set; } = new();
     public List<ClinicWorkingDayDto> WorkingDays { get; set; } = new();

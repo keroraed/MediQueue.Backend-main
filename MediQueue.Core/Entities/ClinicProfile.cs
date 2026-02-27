@@ -11,6 +11,11 @@ public class ClinicProfile
     public required string Specialty { get; set; }
     public required string Description { get; set; }
     public int SlotDurationMinutes { get; set; } = 30;
+    public string? ProfilePictureUrl { get; set; }
+    /// <summary>Doctor's consultation fee per appointment.</summary>
+    public decimal? ConsultationFee { get; set; }
+    /// <summary>Comma-separated accepted payment methods e.g. "VodafoneCash,InstaPay,Visa"</summary>
+    public string? PaymentMethods { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation Properties

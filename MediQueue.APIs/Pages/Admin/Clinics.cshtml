@@ -1,11 +1,14 @@
 @page
 @model MediQueue.APIs.Pages.Admin.ClinicsModel
 @{
-    ViewData["Title"] = "Clinic Management";
+    ViewData["Title"] = "إدارة العيادات";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-clinic-medical"></i> Clinic Management</h2>
+    <h2><i class="fas fa-clinic-medical"></i> إدارة العيادات</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClinicModal">
+        <i class="fas fa-plus"></i> إضافة عيادة
+    </button>
 </div>
 
 <div class="card">
@@ -31,15 +34,18 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Doctor Name</th>
-                            <th>Specialty</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>City</th>
-                            <th>Rating</th>
-                            <th>Appointments</th>
-                            <th>Actions</th>
+                            <th>الرقم</th>
+                            <th>الصورة</th>
+                            <th>اسم الطبيب</th>
+                            <th>التخصص</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الهاتف</th>
+                            <th>المدينة</th>
+                            <th>الرسوم</th>
+                            <th>طرق الدفع</th>
+                            <th>التقييم</th>
+                            <th>المواعيد</th>
+                            <th>الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -47,11 +53,48 @@
                         {
                             <tr>
                                 <td>@clinic.Id</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(clinic.ProfilePictureUrl))
+                                    {
+                                        <img src="@clinic.ProfilePictureUrl" alt="@clinic.DoctorName"
+                                             class="rounded-circle" style="width:40px;height:40px;object-fit:cover;" />
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center"
+                                              style="width:40px;height:40px;">
+                                            <i class="fas fa-user-md"></i>
+                                        </span>
+                                    }
+                                </td>
                                 <td>@clinic.DoctorName</td>
                                 <td><span class="badge bg-primary">@clinic.Specialty</span></td>
                                 <td>@clinic.Email</td>
                                 <td>@clinic.PhoneNumber</td>
                                 <td>@clinic.City</td>
+                                <td>
+                                    @if (clinic.ConsultationFee.HasValue)
+                                    {
+                                        <span class="fw-semibold">@clinic.ConsultationFee.Value.ToString("N0") EGP</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (clinic.PaymentMethods.Any())
+                                    {
+                                        @foreach (var m in clinic.PaymentMethods)
+                                        {
+                                            <span class="badge bg-info text-dark me-1">@m</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
                                 <td>
                                     @if (clinic.AverageRating.HasValue)
                                     {
@@ -62,13 +105,13 @@
                                     }
                                     else
                                     {
-                                        <span class="text-muted">No ratings</span>
+                                        <span class="text-muted">لا يوجد تقييم</span>
                                     }
                                 </td>
                                 <td>@clinic.TotalAppointments</td>
                                 <td>
-                                    <form method="post" asp-page-handler="Delete" asp-route-clinicId="@clinic.Id" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Delete Clinic" onclick="return confirm('Are you sure you want to delete this clinic?')">
+                    <form method="post" asp-page-handler="Delete" asp-route-clinicId="@clinic.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger" title="حذف العيادة" onclick="return confirm('هل أنت متأكد من حذف هذه العيادة؟')">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
@@ -79,12 +122,143 @@
                 </table>
             </div>
             <div class="mt-3">
-                <p class="text-muted">Total Clinics: @Model.Clinics.Count</p>
+                <p class="text-muted">إجمالي العيادات: @Model.Clinics.Count</p>
             </div>
         }
         else
         {
-            <p class="text-muted text-center py-4">No clinics found</p>
+            <p class="text-muted text-center py-4">لا توجد عيادات</p>
         }
+    </div>
+</div>
+
+<!-- ==================== Add Clinic Modal ==================== -->
+<div class="modal fade" id="addClinicModal" tabindex="-1" aria-labelledby="addClinicModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="AddClinic" enctype="multipart/form-data">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="addClinicModalLabel"><i class="fas fa-plus-circle"></i> إضافة عيادة جديدة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="max-height: 65vh; overflow-y: auto; overflow-x: hidden;">
+
+                    <!-- Account Information -->
+                    <h6 class="fw-bold mb-3"><i class="fas fa-user-shield"></i> معلومات الحساب</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" asp-for="ClinicEmail" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">اسم العرض <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" asp-for="ClinicDisplayName" required minlength="3" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" asp-for="ClinicPhoneNumber" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">كلمة المرور <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" asp-for="ClinicPassword" required minlength="6" />
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Clinic Profile -->
+                    <h6 class="fw-bold mb-3"><i class="fas fa-clinic-medical"></i> ملف العيادة</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">اسم الطبيب <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" asp-for="DoctorName" required minlength="3" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">التخصص <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" asp-for="Specialty" required minlength="3" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">الوصف <span class="text-danger">*</span></label>
+                            <textarea class="form-control" asp-for="Description" rows="3" required minlength="10" maxlength="2000"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">مدة الجلسة (بالدقيقة)</label>
+                            <input type="number" class="form-control" asp-for="SlotDurationMinutes" min="5" max="120" value="30" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">رسوم الاستشارة (جنيه)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" asp-for="ConsultationFee" min="0" step="0.01" placeholder="مثال: 300" />
+                                <span class="input-group-text">جنيه</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label d-block">طرق الدفع المقبولة</label>
+                            <div class="d-flex gap-3 flex-wrap">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="PaymentMethods" value="Vodafone Cash" id="pmVodafone" />
+                                    <label class="form-check-label" for="pmVodafone">
+                                        <i class="fas fa-mobile-alt text-danger"></i> فودافون كاش
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="PaymentMethods" value="InstaPay" id="pmInstaPay" />
+                                    <label class="form-check-label" for="pmInstaPay">
+                                        <i class="fas fa-bolt text-warning"></i> إنستاباي
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="PaymentMethods" value="Visa" id="pmVisa" />
+                                    <label class="form-check-label" for="pmVisa">
+                                        <i class="fas fa-credit-card text-primary"></i> فيزا
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">صورة الملف الشخصي</label>
+                            <input type="file" class="form-control" asp-for="ProfilePicture" accept="image/*" />
+                            <div class="form-text">قم بتحميل صورة الطبيب (اختياري)</div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Address -->
+                    <h6 class="fw-bold mb-3"><i class="fas fa-map-marker-alt"></i> العنوان</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">البلد <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" asp-for="Country" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">المدينة <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" asp-for="City" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">المنطقة <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" asp-for="Area" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">الشارع <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" asp-for="Street" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">المبنى <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" asp-for="Building" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">ملاحظات العنوان</label>
+                            <input type="text" class="form-control" asp-for="AddressNotes" placeholder="الطابق، الشقة، معالم مميزة..." />
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> إنشاء العيادة</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>

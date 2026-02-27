@@ -24,4 +24,8 @@
   <ProjectReference Include="..\MediQueue.Service\MediQueue.Service.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
 </Project>

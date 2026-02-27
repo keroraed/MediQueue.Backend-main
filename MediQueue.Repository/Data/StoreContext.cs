@@ -41,6 +41,9 @@ public class StoreContext : DbContext
         entity.Property(e => e.DoctorName).IsRequired().HasMaxLength(200);
          entity.Property(e => e.Specialty).IsRequired().HasMaxLength(200);
   entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.ProfilePictureUrl).HasMaxLength(500);
+            entity.Property(e => e.ConsultationFee).HasColumnType("decimal(10,2)");
+            entity.Property(e => e.PaymentMethods).HasMaxLength(200);
       
             // Note: No navigation to AppUser since it's in a different DbContext (Identity)
     
