@@ -332,4 +332,24 @@ try
         var waitTime = await _appointmentService.GetEstimatedWaitTimeAsync(id);
       return Ok(new { appointmentId = id, estimatedWaitMinutes = waitTime });
     }
+
+    /// <summary>
+    /// Cancel ALL active appointments for a specific date (Clinic only).
+    /// Sends a cancellation + refund email to every affected patient.
+    /// </summary>
+    [HttpPost("clinic/cancel-day")]
+    [Authorize(Roles = "Clinic")]
+    public async Task<ActionResult> CancelClinicDay([FromQuery] DateTime date)
+    {
+        try
+        {
+            var clinicUserId = GetCurrentUserId();
+            var cancelledCount = await _appointmentService.CancelClinicDayAsync(clinicUserId, date);
+            return Ok(new ApiResponse(200, $"{cancelledCount} appointment(s) cancelled for {date:yyyy-MM-dd}. Patients have been notified by email and will receive their refund within 2 working days."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ApiResponse(400, ex.Message));
+        }
+    }
 }

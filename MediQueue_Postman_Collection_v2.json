@@ -1057,7 +1057,7 @@
 					"response": []
 				},
 				{
-					"name": "Get My Appointments (Patient)",
+					"name": "Get Patient Appointment History",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1072,7 +1072,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/appointments/patient/my-appointments",
+							"raw": "{{baseUrl}}/api/appointments/patient/history",
 							"host": [
 								"{{baseUrl}}"
 							],
@@ -1080,10 +1080,10 @@
 								"api",
 								"appointments",
 								"patient",
-								"my-appointments"
+								"history"
 							]
 						},
-						"description": "Get all appointments for current patient"
+						"description": "Get full appointment history for the current patient including total, completed and cancelled counts plus the full appointments list (Patient role only)"
 					},
 					"response": []
 				},
@@ -1171,7 +1171,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"status\": 1\n}"
+							"raw": "{\n  \"status\": 4\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/status",
@@ -1185,7 +1185,7 @@
 								"status"
 							]
 						},
-						"description": "Update appointment status (Clinic role only). Status: 0=Booked, 1=InProgress, 2=Completed, 3=Canceled, 4=Delayed"
+						"description": "Update appointment status (Clinic role only). Status enum: 1=Booked, 2=InProgress, 3=Delayed, 4=Canceled, 5=Completed. Valid transitions: Booked→InProgress/Canceled/Delayed | InProgress→Completed/Delayed | Delayed→InProgress/Canceled. NOTE: Setting status=4 (Canceled) automatically sends a cancellation + refund email to the patient."
 					},
 					"response": []
 				},
@@ -1353,6 +1353,145 @@
 							]
 						},
 						"description": "Get clinic queue for specific date (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Next Available Date (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/next-available?clinicId=1&fromDate=2026-03-15",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"next-available"
+							],
+							"query": [
+								{
+									"key": "clinicId",
+									"value": "1",
+									"description": "ID of the clinic"
+								},
+								{
+									"key": "fromDate",
+									"value": "2026-03-15",
+									"description": "Start searching from this date (defaults to today)"
+								}
+							]
+						},
+						"description": "Get the next available booking date for a clinic. Looks up to 30 days ahead. No authentication required (public endpoint)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Clinic Weekly Queue (Clinic)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/clinic/weekly-queue?startDate=2026-03-10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"clinic",
+								"weekly-queue"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2026-03-10",
+									"description": "Start of 7-day range (defaults to today)"
+								}
+							]
+						},
+						"description": "Get a 7-day queue overview for the clinic. Returns daily summaries with capacity, available slots, booked/completed/delayed/cancelled counts, and busy day flags. (Clinic role only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Estimated Wait Time",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/wait-time",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}",
+								"wait-time"
+							]
+						},
+						"description": "Get estimated wait time in minutes for a specific appointment. Calculated as: (number of people ahead) × (clinic slot duration minutes)."
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Clinic Day - All Appointments (Clinic)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/clinic/cancel-day?date=2026-03-15",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"clinic",
+								"cancel-day"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2026-03-15",
+									"description": "Date to cancel all active appointments for"
+								}
+							]
+						},
+						"description": "Cancel ALL active appointments (Booked, Delayed, InProgress) for the clinic on a specific date. Every affected patient automatically receives a cancellation email informing them their payment will be refunded within 2 working days. Returns the number of cancelled appointments. (Clinic role only)"
 					},
 					"response": []
 				}

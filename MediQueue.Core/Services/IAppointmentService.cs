@@ -18,6 +18,12 @@ public interface IAppointmentService
     Task<AppointmentDto> MarkInProgressAsync(int appointmentId, string clinicUserId);
     Task<AppointmentDto> MarkCompletedAsync(int appointmentId, string clinicUserId);
     Task<AppointmentDto> MarkDelayedAsync(int appointmentId, string clinicUserId);
+
+    /// <summary>
+    /// Cancels all active appointments for a clinic on a specific date.
+    /// Sends a cancellation + refund email to every affected patient.
+    /// </summary>
+    Task<int> CancelClinicDayAsync(string clinicUserId, DateTime date);
     
     // Queries
     Task<AppointmentDetailsDto?> GetAppointmentDetailsAsync(int appointmentId);

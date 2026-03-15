@@ -16,6 +16,7 @@ public class AppointmentService : IAppointmentService
     private readonly ITimeSlotService _timeSlotService;
     private readonly IAppointmentValidationService _validationService;
     private readonly IClinicService _clinicService;
+    private readonly IEmailService _emailService;
 
     public AppointmentService(
         IUnitOfWork unitOfWork,
@@ -23,14 +24,16 @@ public class AppointmentService : IAppointmentService
         UserManager<AppUser> userManager,
         ITimeSlotService timeSlotService,
         IAppointmentValidationService validationService,
-        IClinicService clinicService)
+        IClinicService clinicService,
+        IEmailService emailService)
     {
         _unitOfWork = unitOfWork;
-      _scheduleService = scheduleService;
+        _scheduleService = scheduleService;
         _userManager = userManager;
         _timeSlotService = timeSlotService;
- _validationService = validationService;
-     _clinicService = clinicService;
+        _validationService = validationService;
+        _clinicService = clinicService;
+        _emailService = emailService;
     }
 
     public async Task<AppointmentDto> BookAppointmentAsync(string patientId, BookAppointmentDto dto)
@@ -213,6 +216,29 @@ if (appointment == null)
 
         var updated = await _unitOfWork.Appointments.GetAppointmentWithDetailsAsync(appointmentId);
         var patient = await _userManager.FindByIdAsync(appointment.PatientId);
+
+        // Send cancellation email when clinic cancels an appointment
+        if (dto.Status == AppointmentStatus.Canceled && patient?.Email != null)
+        {
+            try
+            {
+                await _emailService.SendAppointmentCancellationEmailAsync(
+                    patient.Email,
+                    patient.DisplayName ?? patient.UserName ?? "Patient",
+                    updated!.Clinic.DoctorName,
+                    appointment.AppointmentDate,
+                    appointment.AppointmentTime,
+                    appointment.QueueNumber);
+            }
+            catch { /* email failure must never break the main flow */ }
+        }
+
+        // Send queue reminder when the next patient starts being served
+        if (dto.Status == AppointmentStatus.InProgress)
+        {
+            await SendQueueReminderIfNeededAsync(appointment.ClinicId, appointment.AppointmentDate);
+        }
+
         return MapToAppointmentDto(updated!, patient);
     }
 
@@ -232,6 +258,9 @@ if (appointment == null)
         nextAppointment.Status = AppointmentStatus.InProgress;
         _unitOfWork.Appointments.Update(nextAppointment);
         await _unitOfWork.Complete();
+
+        // Send queue reminder to the patient who now has exactly 2 people ahead
+        await SendQueueReminderIfNeededAsync(clinicId, date);
 
   var updated = await _unitOfWork.Appointments.GetAppointmentWithDetailsAsync(nextAppointment.Id);
         var patient = await _userManager.FindByIdAsync(nextAppointment.PatientId);
@@ -444,7 +473,93 @@ CurrentQueueNumber = currentQueueNumber,
         return peopleAhead * clinic.SlotDurationMinutes;
     }
 
-  // Mapping helpers
+    // ── Clinic bulk-cancel ────────────────────────────────────────────────────
+
+    public async Task<int> CancelClinicDayAsync(string clinicUserId, DateTime date)
+    {
+        var clinic = await _clinicService.GetClinicByUserIdAsync(clinicUserId);
+        if (clinic == null)
+            throw new InvalidOperationException("Clinic profile not found for this user");
+
+        var appointments = await _unitOfWork.Appointments.GetClinicAppointmentsByDateAsync(clinic.Id, date);
+
+        // Only cancel patients who haven't been seen yet.
+        // InProgress = currently being seen, Completed = already served → exclude both.
+        var active = appointments
+            .Where(a => a.Status == AppointmentStatus.Booked || a.Status == AppointmentStatus.Delayed)
+            .ToList();
+
+        if (active.Count == 0)
+            throw new InvalidOperationException($"No active appointments found for {date:yyyy-MM-dd}");
+
+        foreach (var appointment in active)
+        {
+            appointment.Status = AppointmentStatus.Canceled;
+            _unitOfWork.Appointments.Update(appointment);
+        }
+
+        await _unitOfWork.Complete();
+
+        // Notify every affected patient
+        foreach (var appointment in active)
+        {
+            var patient = await _userManager.FindByIdAsync(appointment.PatientId);
+            if (patient?.Email == null) continue;
+
+            try
+            {
+                await _emailService.SendAppointmentCancellationEmailAsync(
+                    patient.Email,
+                    patient.DisplayName ?? patient.UserName ?? "Patient",
+                    clinic.DoctorName,
+                    appointment.AppointmentDate,
+                    appointment.AppointmentTime,
+                    appointment.QueueNumber);
+            }
+            catch { /* email failure must never break the main flow */ }
+        }
+
+        return active.Count;
+    }
+
+    // ── Queue reminder helper ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// After any appointment goes to InProgress, find the patient who now has
+    /// exactly 2 Booked appointments ahead of them and send them a reminder email.
+    /// </summary>
+    private async Task SendQueueReminderIfNeededAsync(int clinicId, DateTime date)
+    {
+        try
+        {
+            var bookedApts = (await _unitOfWork.Appointments.GetClinicAppointmentsByDateAsync(clinicId, date))
+                .Where(a => a.Status == AppointmentStatus.Booked)
+                .OrderBy(a => a.QueueNumber)
+                .ToList();
+
+            // Index 2 = the patient who now has exactly 2 people ahead of them
+            if (bookedApts.Count < 3) return;
+
+            var targetApt = bookedApts[2];
+            var patient = await _userManager.FindByIdAsync(targetApt.PatientId);
+            if (patient?.Email == null) return;
+
+            var clinic = await _unitOfWork.Clinics.GetByIdAsync(clinicId);
+
+            await _emailService.SendQueueReminderEmailAsync(
+                patient.Email,
+                patient.DisplayName ?? patient.UserName ?? "Patient",
+                clinic?.DoctorName ?? "Doctor",
+                targetApt.AppointmentDate,
+                targetApt.AppointmentTime,
+                targetApt.QueueNumber,
+                peopleAhead: 2);
+        }
+        catch { /* email failure must never break the main flow */ }
+    }
+
+    // ── Mapping helpers ───────────────────────────────────────────────────────
+
     private AppointmentDto MapToAppointmentDto(Appointment appointment, AppUser? patient)
   {
     return new AppointmentDto
