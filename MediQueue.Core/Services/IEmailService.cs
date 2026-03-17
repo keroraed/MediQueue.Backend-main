@@ -16,7 +16,8 @@ public interface IEmailService
         string doctorName,
         DateTime appointmentDate,
         TimeSpan appointmentTime,
-        int queueNumber);
+        int queueNumber,
+        string? reason);
 
     /// <summary>
     /// Sent to a patient when only 2 patients remain ahead of them in the queue.

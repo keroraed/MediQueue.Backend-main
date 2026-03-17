@@ -339,13 +339,16 @@ try
     /// </summary>
     [HttpPost("clinic/cancel-day")]
     [Authorize(Roles = "Clinic")]
-    public async Task<ActionResult> CancelClinicDay([FromQuery] DateTime date)
+    public async Task<ActionResult> CancelClinicDay([FromQuery] DateTime date, [FromQuery] string reason)
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(reason))
+                return BadRequest(new ApiResponse(400, "Cancellation reason is required."));
+
             var clinicUserId = GetCurrentUserId();
-            var cancelledCount = await _appointmentService.CancelClinicDayAsync(clinicUserId, date);
-            return Ok(new ApiResponse(200, $"{cancelledCount} appointment(s) cancelled for {date:yyyy-MM-dd}. Patients have been notified by email and will receive their refund within 2 working days."));
+            var cancelledCount = await _appointmentService.CancelClinicDayAsync(clinicUserId, date, reason);
+            return Ok(new ApiResponse(200, $"{cancelledCount} appointment(s) cancelled for {date:yyyy-MM-dd}. Reason: {reason}. Patients have been notified by email and will receive their refund within 2 working days."));
         }
         catch (InvalidOperationException ex)
         {

@@ -234,11 +234,13 @@ public class EmailService : IEmailService
         string doctorName,
         DateTime appointmentDate,
         TimeSpan appointmentTime,
-        int queueNumber)
+        int queueNumber,
+        string? reason)
     {
         var subject = "Appointment Cancelled – MediQueue";
         var formattedDate = appointmentDate.ToString("dddd, MMMM dd, yyyy");
         var formattedTime = DateTime.Today.Add(appointmentTime).ToString("hh:mm tt");
+        var reasonText = string.IsNullOrWhiteSpace(reason) ? "Not specified" : reason;
 
         var body = $@"
 <html>
@@ -269,6 +271,7 @@ public class EmailService : IEmailService
             <tr><td style='color:#555;padding:6px 0;font-size:14px;'>Date</td><td style='color:#111;font-weight:600;font-size:14px;'>{formattedDate}</td></tr>
             <tr><td style='color:#555;padding:6px 0;font-size:14px;'>Time</td><td style='color:#111;font-weight:600;font-size:14px;'>{formattedTime}</td></tr>
             <tr><td style='color:#555;padding:6px 0;font-size:14px;'>Queue #</td><td style='color:#111;font-weight:600;font-size:14px;'>#{queueNumber}</td></tr>
+            <tr><td style='color:#555;padding:6px 0;font-size:14px;'>Reason</td><td style='color:#111;font-weight:600;font-size:14px;'>{reasonText}</td></tr>
           </table>
         </div>
 
@@ -288,7 +291,7 @@ public class EmailService : IEmailService
       <!-- Footer -->
       <div style='background:#f8fafc;padding:20px 30px;border-top:1px solid #e2e8f0;text-align:center;'>
         <p style='margin:0;color:#94a3b8;font-size:13px;'>This is an automated message from <strong style='color:#667eea;'>MediQueue</strong>. Please do not reply to this email.</p>
-        <p style='margin:8px 0 0;color:#cbd5e1;font-size:12px;'>© 2024 MediQueue. All rights reserved.</p>
+        <p style='margin:8px 0 0;color:#cbd5e1;font-size:12px;'>&copy; 2024 MediQueue. All rights reserved.</p>
       </div>
 
     </div>
@@ -362,7 +365,7 @@ public class EmailService : IEmailService
       <!-- Footer -->
       <div style='background:#f8fafc;padding:20px 30px;border-top:1px solid #e2e8f0;text-align:center;'>
         <p style='margin:0;color:#94a3b8;font-size:13px;'>This is an automated message from <strong style='color:#667eea;'>MediQueue</strong>. Please do not reply to this email.</p>
-        <p style='margin:8px 0 0;color:#cbd5e1;font-size:12px;'>© 2024 MediQueue. All rights reserved.</p>
+        <p style='margin:8px 0 0;color:#cbd5e1;font-size:12px;'>&copy; 2024 MediQueue. All rights reserved.</p>
       </div>
 
     </div>

@@ -191,28 +191,32 @@ throw new KeyNotFoundException($"Clinic with ID {clinicId} not found");
     public async Task<AppointmentDto> UpdateAppointmentStatusAsync(int appointmentId, string clinicUserId, UpdateAppointmentStatusDto dto)
     {
         var appointment = await _unitOfWork.Appointments.GetByIdAsync(appointmentId);
-if (appointment == null)
+        if (appointment == null)
             throw new KeyNotFoundException($"Appointment with ID {appointmentId} not found");
 
         // Get clinic profile for authorization check
         var clinic = await _clinicService.GetClinicByUserIdAsync(clinicUserId);
         if (clinic == null)
-      throw new InvalidOperationException("Clinic profile not found for this user");
+            throw new InvalidOperationException("Clinic profile not found for this user");
 
         // Validate clinic ownership
-   if (!_validationService.ValidateClinicOwnership(appointment.ClinicId, clinic.Id))
+        if (!_validationService.ValidateClinicOwnership(appointment.ClinicId, clinic.Id))
             throw new UnauthorizedAccessException("You can only update appointments for your own clinic");
 
         // Validate status transition
-   if (!_validationService.IsValidStatusTransition(appointment.Status, dto.Status))
+        if (!_validationService.IsValidStatusTransition(appointment.Status, dto.Status))
         {
-       var errorMessage = _validationService.GetTransitionErrorMessage(appointment.Status, dto.Status);
-         throw new InvalidOperationException(errorMessage);
-      }
+            var errorMessage = _validationService.GetTransitionErrorMessage(appointment.Status, dto.Status);
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        // Require reason when clinic cancels
+        if (dto.Status == AppointmentStatus.Canceled && string.IsNullOrWhiteSpace(dto.Reason))
+            throw new InvalidOperationException("Cancellation reason is required when canceling an appointment.");
 
         appointment.Status = dto.Status;
         _unitOfWork.Appointments.Update(appointment);
-   await _unitOfWork.Complete();
+        await _unitOfWork.Complete();
 
         var updated = await _unitOfWork.Appointments.GetAppointmentWithDetailsAsync(appointmentId);
         var patient = await _userManager.FindByIdAsync(appointment.PatientId);
@@ -228,7 +232,8 @@ if (appointment == null)
                     updated!.Clinic.DoctorName,
                     appointment.AppointmentDate,
                     appointment.AppointmentTime,
-                    appointment.QueueNumber);
+                    appointment.QueueNumber,
+                    dto.Reason);
             }
             catch { /* email failure must never break the main flow */ }
         }
@@ -475,8 +480,11 @@ CurrentQueueNumber = currentQueueNumber,
 
     // ── Clinic bulk-cancel ────────────────────────────────────────────────────
 
-    public async Task<int> CancelClinicDayAsync(string clinicUserId, DateTime date)
+    public async Task<int> CancelClinicDayAsync(string clinicUserId, DateTime date, string reason)
     {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Cancellation reason is required when cancelling a clinic day.");
+
         var clinic = await _clinicService.GetClinicByUserIdAsync(clinicUserId);
         if (clinic == null)
             throw new InvalidOperationException("Clinic profile not found for this user");
@@ -514,7 +522,8 @@ CurrentQueueNumber = currentQueueNumber,
                     clinic.DoctorName,
                     appointment.AppointmentDate,
                     appointment.AppointmentTime,
-                    appointment.QueueNumber);
+                    appointment.QueueNumber,
+                    reason);
             }
             catch { /* email failure must never break the main flow */ }
         }

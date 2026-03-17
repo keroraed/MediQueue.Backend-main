@@ -39,6 +39,11 @@ public class UpdateAppointmentStatusDto
 {
     [Required]
     public AppointmentStatus Status { get; set; }
+
+    /// <summary>
+    /// Required when setting status to Canceled; optional otherwise.
+    /// </summary>
+    public string? Reason { get; set; }
 }
 
 public class AppointmentDetailsDto

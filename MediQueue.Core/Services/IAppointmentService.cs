@@ -23,7 +23,7 @@ public interface IAppointmentService
     /// Cancels all active appointments for a clinic on a specific date.
     /// Sends a cancellation + refund email to every affected patient.
     /// </summary>
-    Task<int> CancelClinicDayAsync(string clinicUserId, DateTime date);
+    Task<int> CancelClinicDayAsync(string clinicUserId, DateTime date, string reason);
     
     // Queries
     Task<AppointmentDetailsDto?> GetAppointmentDetailsAsync(int appointmentId);
